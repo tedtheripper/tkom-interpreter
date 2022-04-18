@@ -43,7 +43,6 @@ public enum TokenType {
     T_RETURN,
     T_SEMICOLON,
     T_STRING_LITERAL,
-    T_STRING_TYPE,
     T_SUB_OP,
     T_TYPE,
     T_TYPE_OPT,

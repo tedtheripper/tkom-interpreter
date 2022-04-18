@@ -33,6 +33,8 @@ public class StartApplication {
             e.printStackTrace();
         }
 
-        System.out.println(tokens);
+        for(var item : tokens) {
+            System.out.println(item);
+        }
     }
 }

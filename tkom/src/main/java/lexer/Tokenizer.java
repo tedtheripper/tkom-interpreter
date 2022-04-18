@@ -20,20 +20,25 @@ public class Tokenizer {
 
     public Tokenizer(PushbackReader fileSourceReader) throws IOException {
         this.fileSourceReader = fileSourceReader;
+        getNextCharacter();
         this.currentLine = 1;
         this.currentColumn = 1;
-        getNextCharacter();
     }
 
     public void getNextCharacter() throws IOException {
         if (this.fileSourceReader != null) {
             currentCharacter = this.fileSourceReader.read();
+            currentColumn++;
         }
     }
 
     public Token getNextToken() throws IOException, DoubleOverflowException, IntegerOverflowException, UnexpectedEndOfTextException, InvalidTokenException {
 
         while (Character.isWhitespace(currentCharacter)) {
+            if (currentCharacter == '\n') {
+                currentLine++;
+                currentColumn = 1;
+            }
             getNextCharacter();
         }
 
@@ -42,6 +47,8 @@ public class Tokenizer {
             while(currentCharacter != '\n') {
                 getNextCharacter();
             }
+            currentLine++;
+            currentColumn = 1;
             getNextCharacter();
         }
 
@@ -102,11 +109,11 @@ public class Tokenizer {
                 getNextCharacter();
             }
             double finalValue = value + fractionPart / Math.pow(10, decimalPlaces);
-            currentToken = new Token(TokenType.T_DOUBLE_LITERAL, new Position(currentLine, currentColumn), finalValue);
+            currentToken = new Token(TokenType.T_DOUBLE_LITERAL, new Position(currentLine, currentColumn - String.valueOf(finalValue).length()), finalValue);
             return true;
         }
 
-        currentToken = new Token(TokenType.T_INT_LITERAL, new Position(currentLine, currentColumn), value);
+        currentToken = new Token(TokenType.T_INT_LITERAL, new Position(currentLine, currentColumn - String.valueOf(value).length()), value);
         return true;
     }
 
@@ -114,7 +121,7 @@ public class Tokenizer {
         getNextCharacter();
         StringBuilder sb = new StringBuilder();
 
-        while ((Character.isISOControl(currentCharacter) || Character.isSpaceChar(currentCharacter))
+        while ((Character.isLetterOrDigit(currentCharacter) || Character.isSpaceChar(currentCharacter) || currentCharacter == '\\')
             && currentCharacter != '"' && currentCharacter != -1) {
             if (currentCharacter == '\\') {
                 getNextCharacter();
@@ -125,16 +132,18 @@ public class Tokenizer {
                     case 'n' -> sb.append('\n');
                     case '\"' -> sb.append('"');
                     case '\\' -> sb.append('\\');
-                    default -> sb.append('\\').append(currentCharacter);
+                    default -> sb.append('\\').append((char)currentCharacter);
                 }
+                getNextCharacter();
             } else {
-                sb.append(currentCharacter);
+                sb.append((char)currentCharacter);
                 getNextCharacter();
             }
         }
 
         if (currentCharacter == '"') {
-            currentToken = new Token(TokenType.T_STRING_LITERAL, new Position(currentLine, currentColumn), sb.toString());
+            currentToken = new Token(TokenType.T_STRING_LITERAL, new Position(currentLine, currentColumn - sb.toString().length()), sb.toString());
+            getNextCharacter();
             return true;
         } else {
             throw new UnexpectedEndOfTextException(String.format("Unexpected end of text occurred L:%d, C:%d", currentLine, currentColumn));
@@ -143,16 +152,17 @@ public class Tokenizer {
 
     private boolean tryBuildIdentifierOrKeyword() throws IOException {
         StringBuilder sb = new StringBuilder();
-        sb.append(currentCharacter);
+        sb.append((char)currentCharacter);
         getNextCharacter();
 
         while(Character.isLetterOrDigit(currentCharacter) || currentCharacter == '_') {
-            sb.append(currentCharacter);
+            sb.append((char)currentCharacter);
+            getNextCharacter();
         }
 
         if (sb.toString().length() == 0) return false;
         var tokenType = getTokenTypeFromString(sb.toString());
-        currentToken = new Token(tokenType, new Position(currentLine, currentColumn), sb.toString());
+        currentToken = new Token(tokenType, new Position(currentLine, currentColumn - sb.toString().length()), sb.toString());
         return true;
     }
 
@@ -162,9 +172,8 @@ public class Tokenizer {
             case "or" -> TokenType.T_OR_OP;
             case "as" -> TokenType.T_AS_OP;
             case "is" -> TokenType.T_IS_OP;
-            case "bool", "int", "double" -> TokenType.T_TYPE;
+            case "bool", "int", "double", "string" -> TokenType.T_TYPE;
             case "true", "false" -> TokenType.T_BOOL_LITERAL;
-            case "string" -> TokenType.T_STRING_TYPE;
             case "break" -> TokenType.T_BREAK;
             case "continue" -> TokenType.T_CONTINUE;
             case "if" -> TokenType.T_IF;
@@ -267,7 +276,7 @@ public class Tokenizer {
     }
 
     private void buildToken(TokenType type, String value) {
-        currentToken = new Token(type, new Position(currentLine, currentColumn), value);
+        currentToken = new Token(type, new Position(currentLine, currentColumn - value.length()), value);
     }
 
 

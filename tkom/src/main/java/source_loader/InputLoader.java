@@ -4,18 +4,17 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.PushbackReader;
 import java.io.StringReader;
-import java.util.Scanner;
 
-public class FileLoader {
+public class InputLoader {
 
     private String filePath;
     private final SourceType sourceType;
 
-    public FileLoader() {
+    public InputLoader() {
         this.sourceType = SourceType.STANDARD_INPUT;
     }
 
-    public FileLoader(String filePath) {
+    public InputLoader(String filePath) {
         this.filePath = filePath;
         this.sourceType = SourceType.FILE;
     }
@@ -24,14 +23,15 @@ public class FileLoader {
         if (this.sourceType == SourceType.FILE) {
             FileReader fr = new FileReader(this.filePath);
             return new PushbackReader(fr);
-        } else {
-            return new PushbackReader(new StringReader(readLine()));
         }
+        return null;
     }
 
-    public String readLine() {
-        var input = new Scanner(System.in);
-        return input.nextLine();
+    public PushbackReader loadInput(String input) {
+        if (this.sourceType == SourceType.STANDARD_INPUT) {
+            return new PushbackReader(new StringReader(input));
+        }
+        return null;
     }
 
     public SourceType getSourceType() {

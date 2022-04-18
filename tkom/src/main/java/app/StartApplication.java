@@ -5,12 +5,13 @@ import lexer.TokenType;
 import lexer.Tokenizer;
 import source_loader.InputLoader;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
 public class StartApplication {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         Scanner sc = new Scanner(System.in);
         String input = sc.nextLine();

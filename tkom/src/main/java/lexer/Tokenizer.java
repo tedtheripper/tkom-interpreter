@@ -18,10 +18,11 @@ public class Tokenizer {
 
     private final PushbackReader fileSourceReader;
 
-    public Tokenizer(PushbackReader fileSourceReader) {
+    public Tokenizer(PushbackReader fileSourceReader) throws IOException {
         this.fileSourceReader = fileSourceReader;
         this.currentLine = 1;
         this.currentColumn = 1;
+        getNextCharacter();
     }
 
     public void getNextCharacter() throws IOException {
@@ -59,7 +60,9 @@ public class Tokenizer {
                 return currentToken;
             } else currentToken = new Token(TokenType.T_INVALID, new Position(currentLine, currentColumn), null);
         } else {
-            if (tryBuildSymbol()) {
+            if (tryBuildSingleCharacterSymbol()) {
+                return currentToken;
+            } else if (tryBuildMultipleCharacterSymbol()) {
                 return currentToken;
             } else currentToken = new Token(TokenType.T_INVALID, new Position(currentLine, currentColumn), null);
         }
@@ -179,10 +182,9 @@ public class Tokenizer {
         };
     }
 
-    private boolean tryBuildSymbol() throws IOException {
-        boolean result = true;
+    private boolean tryBuildSingleCharacterSymbol() throws IOException {
         char firstChar = (char) currentCharacter;
-        getNextCharacter();
+        boolean result = true;
 
         if (firstChar == '+') {
             buildToken(TokenType.T_ADD_OP, String.valueOf(firstChar));
@@ -206,35 +208,54 @@ public class Tokenizer {
             buildToken(TokenType.T_PAREN_OPEN, String.valueOf(firstChar));
         } else if (firstChar == ')') {
             buildToken(TokenType.T_PAREN_CLOSE, String.valueOf(firstChar));
-        } else if (firstChar == '/') {
+        } else {
+            result = false;
+        }
+
+        if (result) getNextCharacter();
+        return result;
+    }
+
+    private boolean tryBuildMultipleCharacterSymbol() throws IOException {
+        boolean result = true;
+        char firstChar = (char) currentCharacter;
+
+        if (firstChar == '/') {
+            getNextCharacter();
             if (currentCharacter == '/') {
                 buildToken(TokenType.T_DIV_INT_OP, String.valueOf(firstChar + (char) currentCharacter));
                 getNextCharacter();
             } else buildToken(TokenType.T_DIV_OP, String.valueOf(firstChar));
         } else if (firstChar == '=') {
+            getNextCharacter();
             if (currentCharacter == '>') {
                 buildToken(TokenType.T_ARROW, String.valueOf(firstChar + (char) currentCharacter));
                 getNextCharacter();
             } else if (currentCharacter == '=') {
+                getNextCharacter();
                 buildToken(TokenType.T_EQUAL_OP, String.valueOf(firstChar + (char) currentCharacter));
                 getNextCharacter();
             } else buildToken(TokenType.T_ASSIGNMENT_OP, String.valueOf(firstChar));
         } else if (firstChar == '>') {
+            getNextCharacter();
             if (currentCharacter == '=') {
                 buildToken(TokenType.T_GE_OP, String.valueOf(firstChar + (char) currentCharacter));
                 getNextCharacter();
             } else buildToken(TokenType.T_GT_OP, String.valueOf(firstChar));
         } else if (firstChar == '<') {
+            getNextCharacter();
             if (currentCharacter == '=') {
                 buildToken(TokenType.T_LE_OP, String.valueOf(firstChar + (char) currentCharacter));
                 getNextCharacter();
             } else buildToken(TokenType.T_LT_OP, String.valueOf(firstChar));
         } else if (firstChar == '!') {
+            getNextCharacter();
             if (currentCharacter == '=') {
                 buildToken(TokenType.T_NOT_EQUAL_OP, String.valueOf(firstChar + (char) currentCharacter));
                 getNextCharacter();
             } else buildToken(TokenType.T_UNARY_OP, String.valueOf(firstChar));
         } else if (firstChar == '?') {
+            getNextCharacter();
             if (currentCharacter == '?') {
                 buildToken(TokenType.T_NULL_COMP_OP, String.valueOf(firstChar + (char) currentCharacter));
                 getNextCharacter();

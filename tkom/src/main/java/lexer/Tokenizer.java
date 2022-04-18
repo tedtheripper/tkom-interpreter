@@ -41,6 +41,7 @@ public class Tokenizer {
             while(currentCharacter != '\n') {
                 getNextCharacter();
             }
+            getNextCharacter();
         }
 
         if (currentCharacter == -1) return new Token(TokenType.T_ETX, new Position(currentLine, currentColumn), null);

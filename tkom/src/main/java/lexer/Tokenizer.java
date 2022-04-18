@@ -45,7 +45,7 @@ public class Tokenizer {
             getNextCharacter();
         }
 
-        if (currentCharacter == -1) return new Token(TokenType.T_ETX, new Position(0,0), null);
+        if (currentCharacter == -1) return new Token(TokenType.T_ETX, new Position(currentLine, currentColumn), null);
 
         switch ((char) currentCharacter) {
             // TODO
@@ -126,11 +126,47 @@ public class Tokenizer {
         }
     }
 
-    public boolean tryBuildIdentifier() {
-        return false;
+    public boolean tryBuildIdentifierOrKeyword() throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(currentCharacter);
+        getNextCharacter();
+
+        while(Character.isLetterOrDigit(currentCharacter) || currentCharacter == '_') {
+            sb.append(currentCharacter);
+        }
+
+        var tokenType = getTokenTypeFromString(sb.toString());
+        currentToken = new Token(tokenType, new Position(currentLine, currentColumn), sb.toString());
+        return true;
     }
 
-    public boolean tryBuildOperator() {
+    public TokenType getTokenTypeFromString(String value) {
+        return switch (value) {
+            case "and" -> TokenType.T_AND_OP;
+            case "or" -> TokenType.T_OR_OP;
+            case "as" -> TokenType.T_AS_OP;
+            case "is" -> TokenType.T_IS_OP;
+            case "bool", "int", "double" -> TokenType.T_TYPE;
+            case "true", "false" -> TokenType.T_BOOL_LITERAL;
+            case "string" -> TokenType.T_STRING_TYPE;
+            case "break" -> TokenType.T_BREAK;
+            case "continue" -> TokenType.T_CONTINUE;
+            case "if" -> TokenType.T_IF;
+            case "else" -> TokenType.T_ELSE;
+            case "func" -> TokenType.T_FUNC_KEYWORD;
+            case "match" -> TokenType.T_MATCH;
+            case "mutable" -> TokenType.T_MUTABLE;
+            case "_" -> TokenType.T_UNDERSCORE;
+            case "return" -> TokenType.T_RETURN;
+            case "void" -> TokenType.T_VOID_TYPE;
+            case "default" -> TokenType.T_DEFAULT;
+            case "while" -> TokenType.T_WHILE;
+            case "null" -> TokenType.T_NULL_LITERAL;
+            default -> TokenType.T_IDENTIFIER;
+        };
+    }
+
+    public boolean tryBuildSymbolicOperator() {
         return false;
     }
 

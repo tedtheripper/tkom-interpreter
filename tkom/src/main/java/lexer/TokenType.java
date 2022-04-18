@@ -45,6 +45,7 @@ public enum TokenType {
     T_STRING_TYPE,
     T_SUB_OP,
     T_TYPE_OPT,
+    T_NULL_COMP_OP,
     T_UNARY_OP,
     T_INVALID,
     T_UNDERSCORE,

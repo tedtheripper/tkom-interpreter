@@ -54,9 +54,7 @@ public class Tokenizer {
     }
 
     public boolean tryBuildNumber() throws IOException, IntegerOverflowException, DoubleOverflowException {
-        if (!Character.isDigit(currentCharacter) && currentCharacter != '.' && currentCharacter != '-') return false;
-        boolean isNegative = currentCharacter == '-';
-        if (isNegative) getNextCharacter();
+        if (!Character.isDigit(currentCharacter) && currentCharacter != '.') return false;
 
         int value = 0;
         if (Character.isDigit(currentCharacter) && currentCharacter != '0') {
@@ -85,12 +83,10 @@ public class Tokenizer {
                 getNextCharacter();
             }
             double finalValue = value + fractionPart / Math.pow(10, decimalPlaces);
-            if (isNegative) finalValue = -finalValue;
             currentToken = new Token(TokenType.T_DOUBLE_LITERAL, new Position(currentLine, currentColumn), finalValue);
             return true;
         }
 
-        if (isNegative) value = -value;
         currentToken = new Token(TokenType.T_INT_LITERAL, new Position(currentLine, currentColumn), value);
         return true;
     }

@@ -16,11 +16,26 @@ public class LexerMappingUtils {
         add("false");
     }};
 
+    private static final List<String> symbolicOperators = new ArrayList<>(
+            List.of("+", "-", "*", "/", "//", "%", "=", "==", "!=", "<", "<=", ">", ">=", "??", "?", "!", "=>"));
+
+    private static final List<String> symbolicKeywords = new ArrayList<>(
+            List.of(":", ";", "{", "}", "(", ")", ",")
+    );
+
     public static boolean isType(String value) {
         return types.contains(value);
     }
 
     public static boolean isBoolLiteral(String value) {
         return boolLiterals.contains(value);
+    }
+
+    public static boolean isSymbolicOperator(String value) {
+        return symbolicOperators.contains(value);
+    }
+
+    public static boolean isSymbolicKeyword(String value) {
+        return symbolicKeywords.contains(value);
     }
 }

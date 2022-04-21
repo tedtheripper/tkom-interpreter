@@ -37,17 +37,16 @@ public class Tokenizer {
 
     public Token getNextToken() throws IOException, DoubleOverflowException, IntegerOverflowException, UnexpectedEndOfTextException, InvalidTokenException {
 
-        while (Character.isWhitespace(currentCharacter)) {
+        while (Character.isWhitespace(currentCharacter) || (char)currentCharacter == '#') {
+            if (currentCharacter == '#') {
+                getNextCharacter();
+                omitComment();
+            }
             if (currentCharacter == '\n') {
                 currentLine++;
                 currentColumn = 0;
             }
             getNextCharacter();
-        }
-
-        if (currentCharacter == '#') {
-            getNextCharacter();
-            omitComment();
         }
 
         if (currentCharacter == -1) return new Token(TokenType.T_ETX, new Position(currentLine, currentColumn), null);
@@ -58,8 +57,8 @@ public class Tokenizer {
         if (tryBuildIdentifierOrKeyword()) return currentToken;
 
         throw new InvalidTokenException(
-                String.format("Invalid token found at L:%d, C:%d", currentToken.position().line(), currentToken.position().column()),
-                currentToken.position().line(), currentToken.position().column());
+                String.format("Invalid token found at L:%d, C:%d", currentLine, currentColumn),
+                currentLine, currentColumn);
     }
 
     private void omitComment() throws IOException {
@@ -75,6 +74,7 @@ public class Tokenizer {
         if (!Character.isDigit(currentCharacter) && currentCharacter != '.') return false;
 
         int value = 0;
+        long startColumn = currentColumn;
         if (Character.isDigit(currentCharacter) && currentCharacter != '0') {
             try {
                 value = Math.addExact(value, (currentCharacter - '0'));
@@ -108,11 +108,11 @@ public class Tokenizer {
             }
             double finalValue = value + fractionPart / Math.pow(10, decimalPlaces);
             currentToken = new Token(TokenType.T_DOUBLE_LITERAL,
-                    new Position(currentLine, currentColumn - String.valueOf(finalValue).length()), finalValue);
+                    new Position(currentLine, startColumn), finalValue);
             return true;
         }
 
-        currentToken = new Token(TokenType.T_INT_LITERAL, new Position(currentLine, currentColumn - String.valueOf(value).length()), value);
+        currentToken = new Token(TokenType.T_INT_LITERAL, new Position(currentLine, startColumn), value);
         if (value == 0) {
             getNextCharacter();
         }
@@ -121,6 +121,7 @@ public class Tokenizer {
 
     private boolean tryBuildString() throws IOException, UnexpectedEndOfTextException {
         if (currentCharacter != '"') return false;
+        var stringLiteralBeginningColumn = currentColumn;
         getNextCharacter();
         StringBuilder sb = new StringBuilder();
 
@@ -145,7 +146,7 @@ public class Tokenizer {
         }
 
         if (currentCharacter == '"') {
-            buildTokenWithStringValue(TokenType.T_STRING_LITERAL, sb.toString());
+            buildTokenWithStringLiteral(sb.toString(), stringLiteralBeginningColumn);
             getNextCharacter();
             return true;
         } else {
@@ -157,13 +158,20 @@ public class Tokenizer {
 
     private boolean isSpecialCharacter(char c) {
         var str = String.valueOf(c);
-        return !str.matches("[a-zA-Z0-9]");
+        return !str.matches("[a-zA-Z0-9\n]");
     }
 
     private boolean tryBuildIdentifierOrKeyword() throws IOException {
         StringBuilder sb = new StringBuilder();
+        if (!Character.isLetterOrDigit(currentCharacter) && !(currentCharacter == '_')
+                && !LexerMappingUtils.isSymbolicKeyword(String.valueOf((char)currentCharacter))) return false;
         sb.append((char)currentCharacter);
         getNextCharacter();
+
+        if (LexerMappingUtils.isSymbolicKeyword(sb.toString())) {
+            buildTokenWithTValue(getTokenTypeFromString(sb.toString()), sb.toString());
+            return true;
+        }
 
         while(Character.isLetterOrDigit(currentCharacter) || currentCharacter == '_') {
             sb.append((char)currentCharacter);
@@ -172,7 +180,9 @@ public class Tokenizer {
 
         if (sb.toString().length() == 0) return false;
         var tokenType = getTokenTypeFromString(sb.toString());
-        buildTokenWithStringValue(tokenType, sb.toString());
+        if (tokenType.equals(TokenType.T_BOOL_LITERAL)) {
+            buildTokenWithTValue(tokenType, Boolean.valueOf(sb.toString()));
+        } else buildTokenWithTValue(tokenType, sb.toString());
         return true;
     }
 
@@ -191,7 +201,9 @@ public class Tokenizer {
         TokenType tokenType;
 
         try {
-            tokenType = TokenType.fromString(String.valueOf(firstChar));
+            var opValue = String.valueOf(firstChar);
+            tokenType = TokenType.fromString(opValue);
+            if (!LexerMappingUtils.isSymbolicOperator(opValue)) return false;
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -199,16 +211,21 @@ public class Tokenizer {
         try {
             var multipleCharacterSymbol = "" + firstChar + (char) currentCharacter;
             tokenType = TokenType.fromString(multipleCharacterSymbol);
-            buildTokenWithStringValue(tokenType, multipleCharacterSymbol);
+            if (!LexerMappingUtils.isSymbolicOperator(multipleCharacterSymbol)) return false;
             getNextCharacter();
+            buildTokenWithTValue(tokenType, multipleCharacterSymbol);
         } catch (IllegalArgumentException e) {
-            buildTokenWithStringValue(tokenType, String.valueOf(firstChar));
+            buildTokenWithTValue(tokenType, String.valueOf(firstChar));
         }
         return true;
 
     }
 
-    private void buildTokenWithStringValue(TokenType type, String value) {
-        currentToken = new Token(type, new Position(currentLine, currentColumn - value.length()), value);
+    private void buildTokenWithStringLiteral(String value, long startColumn) {
+        currentToken = new Token(TokenType.T_STRING_LITERAL, new Position(currentLine, startColumn), value);
+    }
+
+    private <T> void buildTokenWithTValue(TokenType type, T value) {
+        currentToken = new Token(type, new Position(currentLine, currentColumn - value.toString().length()), value);
     }
 }

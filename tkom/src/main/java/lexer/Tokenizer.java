@@ -124,7 +124,7 @@ public class Tokenizer {
         getNextCharacter();
         StringBuilder sb = new StringBuilder();
 
-        while ((Character.isLetterOrDigit(currentCharacter) || Character.isSpaceChar(currentCharacter) || currentCharacter == '\\')
+        while ((Character.isLetterOrDigit(currentCharacter) || Character.isSpaceChar(currentCharacter) || currentCharacter == '\\' || isSpecialCharacter((char)currentCharacter))
             && currentCharacter != '"' && currentCharacter != -1) {
             if (currentCharacter == '\\') {
                 getNextCharacter();
@@ -153,6 +153,11 @@ public class Tokenizer {
                     String.format("Unexpected end of text occurred L:%d, C:%d", currentLine, currentColumn),
                     currentLine, currentColumn);
         }
+    }
+
+    private boolean isSpecialCharacter(char c) {
+        var str = String.valueOf(c);
+        return !str.matches("[a-zA-Z0-9]");
     }
 
     private boolean tryBuildIdentifierOrKeyword() throws IOException {

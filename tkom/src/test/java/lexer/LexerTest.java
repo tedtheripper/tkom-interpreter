@@ -229,6 +229,15 @@ class LexerTest {
         }
 
         @Test
+        void testDoubleOverflow() {
+            String code = """
+                    double value = 0.000000000000000000000000000000000001;
+                    """;
+            var tokenizer = createTokenizer(code);
+            assertThrows(DoubleOverflowException.class, () -> getTokens(tokenizer));
+        }
+
+        @Test
         void testInvalidToken() {
             String code = """
                     $test = 0;

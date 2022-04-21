@@ -1,9 +1,6 @@
 package source_loader;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.PushbackReader;
-import java.io.StringReader;
+import java.io.*;
 
 public class InputLoader {
 

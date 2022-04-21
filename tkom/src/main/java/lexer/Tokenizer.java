@@ -4,11 +4,14 @@ import lexer.exception.DoubleOverflowException;
 import lexer.exception.IntegerOverflowException;
 import lexer.exception.InvalidTokenException;
 import lexer.exception.UnexpectedEndOfTextException;
+import lexer.utils.LexerMappingUtils;
 
 import java.io.IOException;
 import java.io.PushbackReader;
 
 public class Tokenizer {
+
+    private final static int DOUBLE_NUMBERS_OF_PRECISION = 16;
 
     private Token currentToken;
     private int currentCharacter;
@@ -37,46 +40,35 @@ public class Tokenizer {
         while (Character.isWhitespace(currentCharacter)) {
             if (currentCharacter == '\n') {
                 currentLine++;
-                currentColumn = 1;
+                currentColumn = 0;
             }
             getNextCharacter();
         }
 
         if (currentCharacter == '#') {
             getNextCharacter();
-            while(currentCharacter != '\n') {
-                getNextCharacter();
-            }
-            currentLine++;
-            currentColumn = 1;
-            getNextCharacter();
+            omitComment();
         }
 
         if (currentCharacter == -1) return new Token(TokenType.T_ETX, new Position(currentLine, currentColumn), null);
 
-        if (Character.isAlphabetic(currentCharacter) || currentCharacter == '_') {
-            if (tryBuildIdentifierOrKeyword()) {
-                return currentToken;
-            } else currentToken = new Token(TokenType.T_INVALID, new Position(currentLine, currentColumn), null);
-        } else if (Character.isDigit(currentCharacter) || currentCharacter == '.') {
-            if (tryBuildNumber()) {
-                return currentToken;
-            } else currentToken = new Token(TokenType.T_INVALID, new Position(currentLine, currentColumn), null);
-        } else if (currentCharacter == '"') {
-            if (tryBuildString()) {
-                return currentToken;
-            } else currentToken = new Token(TokenType.T_INVALID, new Position(currentLine, currentColumn), null);
-        } else {
-            if (tryBuildSingleCharacterSymbol()) {
-                return currentToken;
-            } else if (tryBuildMultipleCharacterSymbol()) {
-                return currentToken;
-            } else currentToken = new Token(TokenType.T_INVALID, new Position(currentLine, currentColumn), null);
-        }
+        if (tryBuildNumber()) return currentToken;
+        if (tryBuildString()) return currentToken;
+        if (tryBuildMultipleCharacterSymbol()) return currentToken;
+        if (tryBuildIdentifierOrKeyword()) return currentToken;
 
-        if (currentToken.type() == TokenType.T_INVALID) throw new InvalidTokenException(
-                String.format("Invalid token found at L:%d, C:%d", currentToken.position().line(), currentToken.position().column()));
-        return null;
+        throw new InvalidTokenException(
+                String.format("Invalid token found at L:%d, C:%d", currentToken.position().line(), currentToken.position().column()),
+                currentToken.position().line(), currentToken.position().column());
+    }
+
+    private void omitComment() throws IOException {
+        while(currentCharacter != '\n') {
+            getNextCharacter();
+        }
+        getNextCharacter();
+        currentLine++;
+        currentColumn = 1;
     }
 
     private boolean tryBuildNumber() throws IOException, IntegerOverflowException, DoubleOverflowException {
@@ -88,11 +80,12 @@ public class Tokenizer {
                 value = Math.addExact(value, (currentCharacter - '0'));
                 getNextCharacter();
                 while (Character.isDigit(currentCharacter)) {
-                    value = value * 10 + (currentCharacter - '0');
+                    value = Math.addExact(Math.multiplyExact(value, 10), (currentCharacter - '0'));
                     getNextCharacter();
                 }
             } catch (ArithmeticException e) {
-                throw new IntegerOverflowException(String.format("Integer overflow found L:%d, C:%d", currentLine, currentColumn));
+                throw new IntegerOverflowException(
+                        String.format("Integer overflow found L:%d, C:%d", currentLine, currentColumn), currentLine, currentColumn);
             }
         }
         if (currentCharacter == '.') {
@@ -100,24 +93,34 @@ public class Tokenizer {
             int decimalPlaces = 0;
             getNextCharacter();
             while (Character.isDigit(currentCharacter)) {
+                if (decimalPlaces > DOUBLE_NUMBERS_OF_PRECISION) {
+                    throw new DoubleOverflowException(
+                            String.format("Double overflow found L:%d, C:%d", currentLine, currentColumn), currentLine, currentColumn);
+                }
                 try {
-                    fractionPart = Math.addExact(fractionPart * 10, (currentCharacter - '0'));
+                    fractionPart = Math.addExact(Math.multiplyExact(fractionPart, 10), (currentCharacter - '0'));
                 } catch (ArithmeticException e) {
-                    throw new DoubleOverflowException(String.format("Double overflow found L:%d, C:%d", currentLine, currentColumn));
+                    throw new DoubleOverflowException(
+                            String.format("Double overflow found L:%d, C:%d", currentLine, currentColumn), currentLine, currentColumn);
                 }
                 decimalPlaces++;
                 getNextCharacter();
             }
             double finalValue = value + fractionPart / Math.pow(10, decimalPlaces);
-            currentToken = new Token(TokenType.T_DOUBLE_LITERAL, new Position(currentLine, currentColumn - String.valueOf(finalValue).length()), finalValue);
+            currentToken = new Token(TokenType.T_DOUBLE_LITERAL,
+                    new Position(currentLine, currentColumn - String.valueOf(finalValue).length()), finalValue);
             return true;
         }
 
         currentToken = new Token(TokenType.T_INT_LITERAL, new Position(currentLine, currentColumn - String.valueOf(value).length()), value);
+        if (value == 0) {
+            getNextCharacter();
+        }
         return true;
     }
 
     private boolean tryBuildString() throws IOException, UnexpectedEndOfTextException {
+        if (currentCharacter != '"') return false;
         getNextCharacter();
         StringBuilder sb = new StringBuilder();
 
@@ -142,11 +145,13 @@ public class Tokenizer {
         }
 
         if (currentCharacter == '"') {
-            currentToken = new Token(TokenType.T_STRING_LITERAL, new Position(currentLine, currentColumn - sb.toString().length()), sb.toString());
+            buildTokenWithStringValue(TokenType.T_STRING_LITERAL, sb.toString());
             getNextCharacter();
             return true;
         } else {
-            throw new UnexpectedEndOfTextException(String.format("Unexpected end of text occurred L:%d, C:%d", currentLine, currentColumn));
+            throw new UnexpectedEndOfTextException(
+                    String.format("Unexpected end of text occurred L:%d, C:%d", currentLine, currentColumn),
+                    currentLine, currentColumn);
         }
     }
 
@@ -162,122 +167,43 @@ public class Tokenizer {
 
         if (sb.toString().length() == 0) return false;
         var tokenType = getTokenTypeFromString(sb.toString());
-        currentToken = new Token(tokenType, new Position(currentLine, currentColumn - sb.toString().length()), sb.toString());
+        buildTokenWithStringValue(tokenType, sb.toString());
         return true;
     }
 
     private TokenType getTokenTypeFromString(String value) {
-        return switch (value) {
-            case "and" -> TokenType.T_AND_OP;
-            case "or" -> TokenType.T_OR_OP;
-            case "as" -> TokenType.T_AS_OP;
-            case "is" -> TokenType.T_IS_OP;
-            case "bool", "int", "double", "string" -> TokenType.T_TYPE;
-            case "true", "false" -> TokenType.T_BOOL_LITERAL;
-            case "break" -> TokenType.T_BREAK;
-            case "continue" -> TokenType.T_CONTINUE;
-            case "if" -> TokenType.T_IF;
-            case "else" -> TokenType.T_ELSE;
-            case "func" -> TokenType.T_FUNC_KEYWORD;
-            case "match" -> TokenType.T_MATCH;
-            case "mutable" -> TokenType.T_MUTABLE;
-            case "_" -> TokenType.T_UNDERSCORE;
-            case "return" -> TokenType.T_RETURN;
-            case "void" -> TokenType.T_VOID_TYPE;
-            case "default" -> TokenType.T_DEFAULT;
-            case "while" -> TokenType.T_WHILE;
-            case "null" -> TokenType.T_NULL_LITERAL;
-            default -> TokenType.T_IDENTIFIER;
-        };
-    }
-
-    private boolean tryBuildSingleCharacterSymbol() throws IOException {
-        char firstChar = (char) currentCharacter;
-        boolean result = true;
-
-        if (firstChar == '+') {
-            buildToken(TokenType.T_ADD_OP, String.valueOf(firstChar));
-        } else if (firstChar == '-') {
-            buildToken(TokenType.T_SUB_OP, String.valueOf(firstChar));
-        } else if (firstChar == '*') {
-            buildToken(TokenType.T_MUL_OP, String.valueOf(firstChar));
-        } else if (firstChar == ':') {
-            buildToken(TokenType.T_COLON, String.valueOf(firstChar));
-        } else if (firstChar == ';') {
-            buildToken(TokenType.T_SEMICOLON, String.valueOf(firstChar));
-        } else if (firstChar == ',') {
-            buildToken(TokenType.T_COMMA, String.valueOf(firstChar));
-        } else if (firstChar == '{') {
-            buildToken(TokenType.T_CURLY_OPEN, String.valueOf(firstChar));
-        } else if (firstChar == '}') {
-            buildToken(TokenType.T_CURLY_CLOSE, String.valueOf(firstChar));
-        } else if (firstChar == '%') {
-            buildToken(TokenType.T_MOD_OP, String.valueOf(firstChar));
-        } else if (firstChar == '(') {
-            buildToken(TokenType.T_PAREN_OPEN, String.valueOf(firstChar));
-        } else if (firstChar == ')') {
-            buildToken(TokenType.T_PAREN_CLOSE, String.valueOf(firstChar));
-        } else {
-            result = false;
+        try {
+            return TokenType.fromString(value);
+        } catch (IllegalArgumentException e) {
+            if (LexerMappingUtils.isType(value)) return TokenType.T_TYPE;
+            else if (LexerMappingUtils.isBoolLiteral(value)) return TokenType.T_BOOL_LITERAL;
+            else return TokenType.T_IDENTIFIER;
         }
-
-        if (result) getNextCharacter();
-        return result;
     }
 
     private boolean tryBuildMultipleCharacterSymbol() throws IOException {
-        boolean result = true;
         char firstChar = (char) currentCharacter;
+        TokenType tokenType;
 
-        if (firstChar == '/') {
-            getNextCharacter();
-            if (currentCharacter == '/') {
-                buildToken(TokenType.T_DIV_INT_OP, String.valueOf(firstChar + (char) currentCharacter));
-                getNextCharacter();
-            } else buildToken(TokenType.T_DIV_OP, String.valueOf(firstChar));
-        } else if (firstChar == '=') {
-            getNextCharacter();
-            if (currentCharacter == '>') {
-                buildToken(TokenType.T_ARROW, String.valueOf(firstChar + (char) currentCharacter));
-                getNextCharacter();
-            } else if (currentCharacter == '=') {
-                getNextCharacter();
-                buildToken(TokenType.T_EQUAL_OP, String.valueOf(firstChar + (char) currentCharacter));
-                getNextCharacter();
-            } else buildToken(TokenType.T_ASSIGNMENT_OP, String.valueOf(firstChar));
-        } else if (firstChar == '>') {
-            getNextCharacter();
-            if (currentCharacter == '=') {
-                buildToken(TokenType.T_GE_OP, String.valueOf(firstChar + (char) currentCharacter));
-                getNextCharacter();
-            } else buildToken(TokenType.T_GT_OP, String.valueOf(firstChar));
-        } else if (firstChar == '<') {
-            getNextCharacter();
-            if (currentCharacter == '=') {
-                buildToken(TokenType.T_LE_OP, String.valueOf(firstChar + (char) currentCharacter));
-                getNextCharacter();
-            } else buildToken(TokenType.T_LT_OP, String.valueOf(firstChar));
-        } else if (firstChar == '!') {
-            getNextCharacter();
-            if (currentCharacter == '=') {
-                buildToken(TokenType.T_NOT_EQUAL_OP, String.valueOf(firstChar + (char) currentCharacter));
-                getNextCharacter();
-            } else buildToken(TokenType.T_UNARY_OP, String.valueOf(firstChar));
-        } else if (firstChar == '?') {
-            getNextCharacter();
-            if (currentCharacter == '?') {
-                buildToken(TokenType.T_NULL_COMP_OP, String.valueOf(firstChar + (char) currentCharacter));
-                getNextCharacter();
-            } else buildToken(TokenType.T_TYPE_OPT, String.valueOf(firstChar));
-        } else {
-            result = false;
+        try {
+            tokenType = TokenType.fromString(String.valueOf(firstChar));
+        } catch (IllegalArgumentException e) {
+            return false;
         }
-        return result;
+        getNextCharacter();
+        try {
+            var multipleCharacterSymbol = "" + firstChar + (char) currentCharacter;
+            tokenType = TokenType.fromString(multipleCharacterSymbol);
+            buildTokenWithStringValue(tokenType, multipleCharacterSymbol);
+            getNextCharacter();
+        } catch (IllegalArgumentException e) {
+            buildTokenWithStringValue(tokenType, String.valueOf(firstChar));
+        }
+        return true;
+
     }
 
-    private void buildToken(TokenType type, String value) {
+    private void buildTokenWithStringValue(TokenType type, String value) {
         currentToken = new Token(type, new Position(currentLine, currentColumn - value.length()), value);
     }
-
-
 }

@@ -1,7 +1,7 @@
 package lexer.exception;
 
-public class InvalidTokenException extends Exception{
-    public InvalidTokenException(String message) {
-        super(message);
+public class InvalidTokenException extends LexerException{
+    public InvalidTokenException(String message, long line, long column) {
+        super(message, line, column);
     }
 }

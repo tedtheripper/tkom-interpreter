@@ -1,7 +1,7 @@
 package lexer.exception;
 
-public class IntegerOverflowException extends Exception{
-    public IntegerOverflowException(String message) {
-        super(message);
+public class IntegerOverflowException extends LexerException{
+    public IntegerOverflowException(String message, long line, long column) {
+        super(message, line, column);
     }
 }

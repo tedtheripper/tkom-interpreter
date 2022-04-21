@@ -1,7 +1,7 @@
 package lexer.exception;
 
-public class DoubleOverflowException extends Exception{
-    public DoubleOverflowException(String message) {
-        super(message);
+public class DoubleOverflowException extends LexerException{
+    public DoubleOverflowException(String message, long line, long column) {
+        super(message, line, column);
     }
 }

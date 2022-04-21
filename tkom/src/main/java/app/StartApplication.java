@@ -8,18 +8,18 @@ import source_loader.InputLoader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 public class StartApplication {
     public static void main(String[] args) throws IOException {
 
-        Scanner sc = new Scanner(System.in);
-        String input = sc.nextLine();
+        String filePath = "";
 
-        InputLoader il = new InputLoader();
+        if (args.length > 0)
+            filePath = args[0];
 
-        Tokenizer tokenizer = new Tokenizer(il.loadInput(input));
+        InputLoader il = new InputLoader(filePath);
 
+        var tokenizer = new Tokenizer(il.loadFile());
         List<Token> tokens = new ArrayList<>();
 
         try {

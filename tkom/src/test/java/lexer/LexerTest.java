@@ -1,10 +1,7 @@
 package lexer;
 
 
-import lexer.exception.DoubleOverflowException;
-import lexer.exception.IntegerOverflowException;
-import lexer.exception.InvalidTokenException;
-import lexer.exception.UnexpectedEndOfTextException;
+import lexer.exception.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -53,121 +50,121 @@ class LexerTest {
 
         @ParameterizedTest
         @MethodSource("singleOperatorsTokensFactory")
-        void testSingleCharTokens(String code, Token expectedToken) throws Exception{
+        void testSingleCharTokens(String code, List<Token> expectedTokens) throws Exception{
             var tokenizer = createTokenizer(code);
-            var token = getTokens(tokenizer).get(0);
-            assertEquals(expectedToken, token);
+            var tokens = getTokens(tokenizer);
+            assertEquals(expectedTokens, tokens);
         }
 
         @ParameterizedTest
         @MethodSource("mulCharOperatorsTokensFactory")
-        void testMulCharTokens(String code, Token expectedToken) throws Exception{
+        void testMulCharTokens(String code, List<Token> expectedTokens) throws Exception{
             var tokenizer = createTokenizer(code);
-            var token = getTokens(tokenizer).get(0);
-            assertEquals(expectedToken, token);
+            var tokens = getTokens(tokenizer);
+            assertEquals(expectedTokens, tokens);
         }
 
         @ParameterizedTest
         @MethodSource("keywordTokensFactory")
-        void testKeywordsTokens(String code, Token expectedToken) throws Exception{
+        void testKeywordsTokens(String code, List<Token> expectedTokens) throws Exception{
             var tokenizer = createTokenizer(code);
-            var token = getTokens(tokenizer).get(0);
-            assertEquals(expectedToken, token);
+            var tokens = getTokens(tokenizer);
+            assertEquals(expectedTokens, tokens);
         }
 
         @ParameterizedTest
         @MethodSource("literalTokensFactory")
-        void testLiteralsTokens(String code, Token expectedToken) throws Exception{
+        void testLiteralsTokens(String code, List<Token> expectedTokens) throws Exception{
             var tokenizer = createTokenizer(code);
-            var token = getTokens(tokenizer).get(0);
-            assertEquals(expectedToken, token);
+            var tokens = getTokens(tokenizer);
+            assertEquals(expectedTokens, tokens);
         }
 
         @ParameterizedTest
         @MethodSource("escapedStringsTokenFactory")
-        void testEscapedStringsTokens(String code, Token expectedToken) throws Exception{
+        void testEscapedStringsTokens(String code, List<Token> expectedTokens) throws Exception{
             var tokenizer = createTokenizer(code);
-            var token = getTokens(tokenizer).get(0);
-            assertEquals(expectedToken, token);
+            var tokens = getTokens(tokenizer);
+            assertEquals(expectedTokens, tokens);
         }
 
         static Stream<Arguments> singleOperatorsTokensFactory() {
             return Stream.of(
-                    Arguments.of("+", new Token(TokenType.T_ADD_OP, new Position(1,1), "+")),
-                    Arguments.of("=", new Token(TokenType.T_ASSIGNMENT_OP, new Position(1,1), "=")),
-                    Arguments.of("/", new Token(TokenType.T_DIV_OP, new Position(1,1), "/")),
-                    Arguments.of(">", new Token(TokenType.T_GT_OP, new Position(1,1), ">")),
-                    Arguments.of("<", new Token(TokenType.T_LT_OP, new Position(1,1), "<")),
-                    Arguments.of("%", new Token(TokenType.T_MOD_OP, new Position(1,1), "%")),
-                    Arguments.of("*", new Token(TokenType.T_MUL_OP, new Position(1,1), "*")),
-                    Arguments.of("-", new Token(TokenType.T_SUB_OP, new Position(1,1), "-")),
-                    Arguments.of("?", new Token(TokenType.T_TYPE_OPT, new Position(1,1), "?")),
-                    Arguments.of("!", new Token(TokenType.T_UNARY_OP, new Position(1,1), "!"))
+                    Arguments.of("+", List.of(new Token(TokenType.T_ADD_OP, new Position(1,1), "+"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("=", List.of(new Token(TokenType.T_ASSIGNMENT_OP, new Position(1,1), "="), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("/", List.of(new Token(TokenType.T_DIV_OP, new Position(1,1), "/"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of(">", List.of(new Token(TokenType.T_GT_OP, new Position(1,1), ">"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("<", List.of(new Token(TokenType.T_LT_OP, new Position(1,1), "<"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("%", List.of(new Token(TokenType.T_MOD_OP, new Position(1,1), "%"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("*", List.of(new Token(TokenType.T_MUL_OP, new Position(1,1), "*"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("-", List.of(new Token(TokenType.T_SUB_OP, new Position(1,1), "-"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("?", List.of(new Token(TokenType.T_TYPE_OPT, new Position(1,1), "?"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("!", List.of(new Token(TokenType.T_UNARY_OP, new Position(1,1), "!"), new Token(TokenType.T_ETX, new Position(1, 2), null)))
             );
         }
 
         static Stream<Arguments> mulCharOperatorsTokensFactory() {
             return Stream.of(
-                    Arguments.of("=>", new Token(TokenType.T_ARROW, new Position(1,1), "=>")),
-                    Arguments.of("//", new Token(TokenType.T_DIV_INT_OP, new Position(1,1), "//")),
-                    Arguments.of("==", new Token(TokenType.T_EQUAL_OP, new Position(1,1), "==")),
-                    Arguments.of(">=", new Token(TokenType.T_GE_OP, new Position(1,1), ">=")),
-                    Arguments.of("<=", new Token(TokenType.T_LE_OP, new Position(1,1), "<=")),
-                    Arguments.of("!=", new Token(TokenType.T_NOT_EQUAL_OP, new Position(1,1), "!=")),
-                    Arguments.of("??", new Token(TokenType.T_NULL_COMP_OP, new Position(1,1), "??"))
+                    Arguments.of("=>", List.of(new Token(TokenType.T_ARROW, new Position(1,1), "=>"), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("//", List.of(new Token(TokenType.T_DIV_INT_OP, new Position(1,1), "//"), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("==", List.of(new Token(TokenType.T_EQUAL_OP, new Position(1,1), "=="), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of(">=", List.of(new Token(TokenType.T_GE_OP, new Position(1,1), ">="), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("<=", List.of(new Token(TokenType.T_LE_OP, new Position(1,1), "<="), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("!=", List.of(new Token(TokenType.T_NOT_EQUAL_OP, new Position(1,1), "!="), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("??", List.of(new Token(TokenType.T_NULL_COMP_OP, new Position(1,1), "??"), new Token(TokenType.T_ETX, new Position(1, 3), null)))
             );
         }
 
         static Stream<Arguments> keywordTokensFactory() {
             return Stream.of(
-                    Arguments.of("while", new Token(TokenType.T_WHILE, new Position(1,1), "while")),
-                    Arguments.of("void", new Token(TokenType.T_VOID_TYPE, new Position(1,1), "void")),
-                    Arguments.of("return", new Token(TokenType.T_RETURN, new Position(1,1), "return")),
-                    Arguments.of("or", new Token(TokenType.T_OR_OP, new Position(1,1), "or")),
-                    Arguments.of("null", new Token(TokenType.T_NULL_LITERAL, new Position(1,1), "null")),
-                    Arguments.of("mutable", new Token(TokenType.T_MUTABLE, new Position(1,1), "mutable")),
-                    Arguments.of("match", new Token(TokenType.T_MATCH, new Position(1,1), "match")),
-                    Arguments.of("func", new Token(TokenType.T_FUNC_KEYWORD, new Position(1,1), "func")),
-                    Arguments.of("else", new Token(TokenType.T_ELSE, new Position(1,1), "else")),
-                    Arguments.of("default", new Token(TokenType.T_DEFAULT, new Position(1,1), "default")),
-                    Arguments.of("continue", new Token(TokenType.T_CONTINUE, new Position(1,1), "continue")),
-                    Arguments.of("break", new Token(TokenType.T_BREAK, new Position(1,1), "break")),
-                    Arguments.of("and", new Token(TokenType.T_AND_OP, new Position(1,1), "and")),
-                    Arguments.of("as", new Token(TokenType.T_AS_OP, new Position(1,1), "as")),
-                    Arguments.of("is", new Token(TokenType.T_IS_OP, new Position(1,1), "is")),
-                    Arguments.of("if", new Token(TokenType.T_IF, new Position(1,1), "if")),
-                    Arguments.of(")", new Token(TokenType.T_PAREN_CLOSE, new Position(1,1), ")")),
-                    Arguments.of("(", new Token(TokenType.T_PAREN_OPEN, new Position(1,1), "(")),
-                    Arguments.of(";", new Token(TokenType.T_SEMICOLON, new Position(1,1), ";")),
-                    Arguments.of("_", new Token(TokenType.T_UNDERSCORE, new Position(1,1), "_")),
-                    Arguments.of(":", new Token(TokenType.T_COLON, new Position(1,1), ":")),
-                    Arguments.of(",", new Token(TokenType.T_COMMA, new Position(1,1), ",")),
-                    Arguments.of("}", new Token(TokenType.T_CURLY_CLOSE, new Position(1,1), "}")),
-                    Arguments.of("{", new Token(TokenType.T_CURLY_OPEN, new Position(1,1), "{"))
+                    Arguments.of("while", List.of(new Token(TokenType.T_WHILE, new Position(1,1), "while"), new Token(TokenType.T_ETX, new Position(1, 6), null))),
+                    Arguments.of("void", List.of(new Token(TokenType.T_VOID_TYPE, new Position(1,1), "void"), new Token(TokenType.T_ETX, new Position(1, 5), null))),
+                    Arguments.of("return", List.of(new Token(TokenType.T_RETURN, new Position(1,1), "return"), new Token(TokenType.T_ETX, new Position(1, 7), null))),
+                    Arguments.of("or", List.of(new Token(TokenType.T_OR_OP, new Position(1,1), "or"), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("null", List.of(new Token(TokenType.T_NULL_LITERAL, new Position(1,1), "null"), new Token(TokenType.T_ETX, new Position(1, 5), null))),
+                    Arguments.of("mutable", List.of(new Token(TokenType.T_MUTABLE, new Position(1,1), "mutable"), new Token(TokenType.T_ETX, new Position(1, 8), null))),
+                    Arguments.of("match", List.of(new Token(TokenType.T_MATCH, new Position(1,1), "match"), new Token(TokenType.T_ETX, new Position(1, 6), null))),
+                    Arguments.of("func", List.of(new Token(TokenType.T_FUNC_KEYWORD, new Position(1,1), "func"), new Token(TokenType.T_ETX, new Position(1, 5), null))),
+                    Arguments.of("else", List.of(new Token(TokenType.T_ELSE, new Position(1,1), "else"), new Token(TokenType.T_ETX, new Position(1, 5), null))),
+                    Arguments.of("default", List.of(new Token(TokenType.T_DEFAULT, new Position(1,1), "default"), new Token(TokenType.T_ETX, new Position(1, 8), null))),
+                    Arguments.of("continue", List.of(new Token(TokenType.T_CONTINUE, new Position(1,1), "continue"), new Token(TokenType.T_ETX, new Position(1, 9), null))),
+                    Arguments.of("break", List.of(new Token(TokenType.T_BREAK, new Position(1,1), "break"), new Token(TokenType.T_ETX, new Position(1, 6), null))),
+                    Arguments.of("and", List.of(new Token(TokenType.T_AND_OP, new Position(1,1), "and"), new Token(TokenType.T_ETX, new Position(1, 4), null))),
+                    Arguments.of("as", List.of(new Token(TokenType.T_AS_OP, new Position(1,1), "as"), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("is", List.of(new Token(TokenType.T_IS_OP, new Position(1,1), "is"), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("if", List.of(new Token(TokenType.T_IF, new Position(1,1), "if"), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of(")", List.of(new Token(TokenType.T_PAREN_CLOSE, new Position(1,1), ")"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("(", List.of(new Token(TokenType.T_PAREN_OPEN, new Position(1,1), "("), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of(";", List.of(new Token(TokenType.T_SEMICOLON, new Position(1,1), ";"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("_", List.of(new Token(TokenType.T_UNDERSCORE, new Position(1,1), "_"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of(":", List.of(new Token(TokenType.T_COLON, new Position(1,1), ":"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of(",", List.of(new Token(TokenType.T_COMMA, new Position(1,1), ","), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("}", List.of(new Token(TokenType.T_CURLY_CLOSE, new Position(1,1), "}"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("{", List.of(new Token(TokenType.T_CURLY_OPEN, new Position(1,1), "{"), new Token(TokenType.T_ETX, new Position(1, 2), null)))
             );
         }
 
         static Stream<Arguments> literalTokensFactory() {
             return Stream.of(
-                    Arguments.of("\"test\"", new Token(TokenType.T_STRING_LITERAL, new Position(1, 1), "test")),
-                    Arguments.of("15", new Token(TokenType.T_INT_LITERAL, new Position(1, 1), 15)),
-                    Arguments.of("1.5", new Token(TokenType.T_DOUBLE_LITERAL, new Position(1, 1), 1.5)),
-                    Arguments.of(".5", new Token(TokenType.T_DOUBLE_LITERAL, new Position(1, 1), 0.5)),
-                    Arguments.of("1.", new Token(TokenType.T_DOUBLE_LITERAL, new Position(1, 1), 1.0)),
-                    Arguments.of("true", new Token(TokenType.T_BOOL_LITERAL, new Position(1,1), true)),
-                    Arguments.of("false", new Token(TokenType.T_BOOL_LITERAL, new Position(1,1), false))
+                    Arguments.of("\"test\"", List.of(new Token(TokenType.T_STRING_LITERAL, new Position(1, 1), "test"), new Token(TokenType.T_ETX, new Position(1, 7), null))),
+                    Arguments.of("15", List.of(new Token(TokenType.T_INT_LITERAL, new Position(1, 1), 15), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("1.5", List.of(new Token(TokenType.T_DOUBLE_LITERAL, new Position(1, 1), 1.5), new Token(TokenType.T_ETX, new Position(1, 4), null))),
+                    Arguments.of(".5", List.of(new Token(TokenType.T_DOUBLE_LITERAL, new Position(1, 1), 0.5), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("1.", List.of(new Token(TokenType.T_DOUBLE_LITERAL, new Position(1, 1), 1.0), new Token(TokenType.T_ETX, new Position(1, 3), null))),
+                    Arguments.of("true", List.of(new Token(TokenType.T_BOOL_LITERAL, new Position(1,1), true), new Token(TokenType.T_ETX, new Position(1, 5), null))),
+                    Arguments.of("false", List.of(new Token(TokenType.T_BOOL_LITERAL, new Position(1,1), false), new Token(TokenType.T_ETX, new Position(1, 6), null)))
             );
         }
 
         static Stream<Arguments> escapedStringsTokenFactory() {
             return Stream.of(
-                    Arguments.of("\"test\\ntest\"", new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\ntest")),
-                    Arguments.of("\"test\\btest\"", new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\btest")),
-                    Arguments.of("\"test\\rtest\"", new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\rtest")),
-                    Arguments.of("\"test\\ttest\"", new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\ttest")),
-                    Arguments.of("\"test\\\"test\"", new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\"test")),
-                    Arguments.of("\"test\\\\test\"", new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\\test")),
-                    Arguments.of("\"test\\atest\"", new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\\atest"))
+                    Arguments.of("\"test\\ntest\"", List.of(new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\ntest"), new Token(TokenType.T_ETX, new Position(1, 13), null))),
+                    Arguments.of("\"test\\btest\"", List.of(new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\btest"), new Token(TokenType.T_ETX, new Position(1, 13), null))),
+                    Arguments.of("\"test\\rtest\"", List.of(new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\rtest"), new Token(TokenType.T_ETX, new Position(1, 13), null))),
+                    Arguments.of("\"test\\ttest\"", List.of(new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\ttest"), new Token(TokenType.T_ETX, new Position(1, 13), null))),
+                    Arguments.of("\"test\\\"test\"", List.of(new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\"test"), new Token(TokenType.T_ETX, new Position(1, 13), null))),
+                    Arguments.of("\"test\\\\test\"", List.of(new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\\test"), new Token(TokenType.T_ETX, new Position(1, 13), null))),
+                    Arguments.of("\"test\\atest\"", List.of(new Token(TokenType.T_STRING_LITERAL, new Position(1,1), "test\\atest"), new Token(TokenType.T_ETX, new Position(1, 13), null)))
             );
         }
     }
@@ -178,18 +175,18 @@ class LexerTest {
 
         @ParameterizedTest
         @MethodSource("identifiersFactory")
-        void testIdentifierTokens(String code, Token expectedToken) throws Exception{
+        void testIdentifierTokens(String code, List<Token> expectedTokens) throws Exception{
             var tokenizer = createTokenizer(code);
-            var token = getTokens(tokenizer).get(0);
-            assertEquals(expectedToken, token);
+            var tokens = getTokens(tokenizer);
+            assertEquals(expectedTokens, tokens);
         }
 
         static Stream<Arguments> identifiersFactory() {
             return Stream.of(
-                    Arguments.of("a", new Token(TokenType.T_IDENTIFIER, new Position(1,1), "a")),
-                    Arguments.of("_abc", new Token(TokenType.T_IDENTIFIER, new Position(1,1), "_abc")),
-                    Arguments.of("ifff", new Token(TokenType.T_IDENTIFIER, new Position(1,1), "ifff")),
-                    Arguments.of("whiile", new Token(TokenType.T_IDENTIFIER, new Position(1,1), "whiile"))
+                    Arguments.of("a", List.of(new Token(TokenType.T_IDENTIFIER, new Position(1,1), "a"), new Token(TokenType.T_ETX, new Position(1, 2), null))),
+                    Arguments.of("_abc", List.of(new Token(TokenType.T_IDENTIFIER, new Position(1,1), "_abc"), new Token(TokenType.T_ETX, new Position(1, 5), null))),
+                    Arguments.of("ifff", List.of(new Token(TokenType.T_IDENTIFIER, new Position(1,1), "ifff"), new Token(TokenType.T_ETX, new Position(1, 5), null))),
+                    Arguments.of("whiile", List.of(new Token(TokenType.T_IDENTIFIER, new Position(1,1), "whiile"), new Token(TokenType.T_ETX, new Position(1, 7), null)))
             );
         }
 
@@ -201,7 +198,17 @@ class LexerTest {
                     """;
             var tokenizer = createTokenizer(code);
             var tokens = getTokens(tokenizer);
+            var expectedTokens = List.of(
+                    new Token(TokenType.T_TYPE, new Position(2, 1), "int"),
+                    new Token(TokenType.T_IDENTIFIER, new Position(2, 5), "a"),
+                    new Token(TokenType.T_ASSIGNMENT_OP, new Position(2, 7), "="),
+                    new Token(TokenType.T_INT_LITERAL, new Position(2, 9), 1),
+                    new Token(TokenType.T_SEMICOLON, new Position(2, 10), ";"),
+                    new Token(TokenType.T_ETX, new Position(3, 1), null)
+            );
+
             assert tokens.size() == 6; // comment has not been tokenized
+            assertEquals(expectedTokens, tokens);
         }
 
     }
@@ -210,11 +217,19 @@ class LexerTest {
     @DisplayName("Errors tests")
     class ErrorsTests{
         @Test
-        void testUnexpectedEndOfText() {
+        void testUnexpectedEndOfString() {
             String code = """
                     string test = "abc
                     ";
                     """;
+            var tokenizer = createTokenizer(code);
+            assertThrows(UnexpectedEndOfStringException.class, () -> getTokens(tokenizer));
+        }
+
+        @Test
+        void testUnexpectedEndOfText() {
+            String code = """
+                    string test = "abc""";
             var tokenizer = createTokenizer(code);
             assertThrows(UnexpectedEndOfTextException.class, () -> getTokens(tokenizer));
         }
@@ -303,7 +318,33 @@ class LexerTest {
         }
     }
 
-    private List<Token> getTokens(Tokenizer tokenizer) throws InvalidTokenException, DoubleOverflowException, IOException, UnexpectedEndOfTextException, IntegerOverflowException {
+    @Test
+    void badDoubleLiteralTests() {
+        String code = "1.2.3";
+        var tokenizer = createTokenizer(code);
+        assertThrows(InvalidTokenException.class, () -> getTokens(tokenizer));
+
+    }
+
+    @Test
+    void badIntegerLiteralTests() {
+        String code = "1O3";
+        var tokenizer = createTokenizer(code);
+        assertThrows(InvalidTokenException.class, () -> getTokens(tokenizer));
+    }
+
+    @Test
+    void commentWithETXTests() throws InvalidTokenException, DoubleOverflowException, IOException, UnexpectedEndOfTextException, IntegerOverflowException, UnexpectedEndOfStringException {
+        String code = "#asd";
+        var tokenizer = createTokenizer(code);
+        var tokens = getTokens(tokenizer);
+        assert tokens.size() == 1;
+        var expectedToken = new Token(TokenType.T_ETX, new Position(1, 5), null);
+
+        assertEquals(expectedToken, tokens.get(0));
+    }
+
+    private List<Token> getTokens(Tokenizer tokenizer) throws InvalidTokenException, DoubleOverflowException, IOException, UnexpectedEndOfTextException, IntegerOverflowException, UnexpectedEndOfStringException {
         List<Token> tokens = new ArrayList<>();
 
         if (tokenizer == null) {

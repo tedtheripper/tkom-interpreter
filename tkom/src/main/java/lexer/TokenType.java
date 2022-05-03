@@ -68,6 +68,6 @@ public enum TokenType {
                 return t;
             }
         }
-        throw new IllegalArgumentException("No TokenType with text " + text + "found");
+        throw new IllegalArgumentException("No TokenType with text " + text + " found");
     }
 }

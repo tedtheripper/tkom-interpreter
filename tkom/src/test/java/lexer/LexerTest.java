@@ -555,6 +555,14 @@ class LexerTest {
         assertEquals(expectedToken, tokens.get(0));
     }
 
+    @Test
+    void escapedStringWithETX() {
+        String code = "\"test\\";
+        var tokenizer = createTokenizer(code);
+        assertThrows(UnexpectedEndOfTextException.class, () -> getTokens(tokenizer));
+    }
+
+
     private List<Token> getTokens(Tokenizer tokenizer) throws InvalidTokenException, DoubleOverflowException, IOException, UnexpectedEndOfTextException, IntegerOverflowException, UnexpectedEndOfStringException {
         List<Token> tokens = new ArrayList<>();
 

@@ -127,10 +127,11 @@ public class Tokenizer {
         getNextCharacter();
         StringBuilder sb = new StringBuilder();
 
-        while ((Character.isLetterOrDigit(currentCharacter) || Character.isSpaceChar(currentCharacter) || currentCharacter == '\\' || isSpecialCharacter((char)currentCharacter))
+        while ((Character.isLetterOrDigit(currentCharacter) || Character.isSpaceChar(currentCharacter) || isAllowedSpecialCharacter((char)currentCharacter))
             && currentCharacter != '"' && currentCharacter != -1) {
             if (currentCharacter == '\\') {
                 getNextCharacter();
+                if (currentCharacter == -1) break;
                 switch ((char) currentCharacter) {
                     case 't' -> sb.append('\t');
                     case 'b' -> sb.append('\b');
@@ -164,7 +165,7 @@ public class Tokenizer {
         }
     }
 
-    private boolean isSpecialCharacter(char c) {
+    private boolean isAllowedSpecialCharacter(char c) {
         var str = String.valueOf(c);
         return !str.matches("[a-zA-Z0-9\n]");
     }

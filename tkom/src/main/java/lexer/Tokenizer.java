@@ -2,9 +2,10 @@ package lexer;
 
 import lexer.exception.*;
 import lexer.utils.LexerMappingUtils;
+import source_loader.Source;
+import source_loader.exception.SourceException;
 
 import java.io.IOException;
-import java.io.PushbackReader;
 
 public class Tokenizer {
 
@@ -14,40 +15,30 @@ public class Tokenizer {
 
     private int currentCharacter;
 
-    private long currentLine;
-    private long currentColumn;
+    private final Source source;
 
-    private final PushbackReader fileSourceReader;
-
-    public Tokenizer(PushbackReader fileSourceReader) throws IOException {
-        this.fileSourceReader = fileSourceReader;
+    public Tokenizer(Source source) throws IOException, SourceException {
+        this.source = source;
         getNextCharacter();
-        this.currentLine = 1;
-        this.currentColumn = 1;
     }
 
-    public void getNextCharacter() throws IOException {
-        if (this.fileSourceReader != null) {
-            currentCharacter = this.fileSourceReader.read();
-            currentColumn++;
-        }
+    public void getNextCharacter() throws IOException, SourceException {
+        currentCharacter = this.source.getNextCharacter();
     }
 
-    public Token getNextToken() throws IOException, DoubleOverflowException, IntegerOverflowException, UnexpectedEndOfTextException, InvalidTokenException, UnexpectedEndOfStringException {
+    public Token getNextToken() throws IOException, DoubleOverflowException, IntegerOverflowException, UnexpectedEndOfTextException, InvalidTokenException, UnexpectedEndOfStringException, SourceException {
 
         while (Character.isWhitespace(currentCharacter) || (char)currentCharacter == '#') {
             if (currentCharacter == '#') {
                 getNextCharacter();
                 omitCommentTillEndOfLine();
             }
-            if (currentCharacter == '\n') {
-                currentLine++;
-                currentColumn = 0;
-            }
             if (!hasSourceEnded())
                 getNextCharacter();
         }
 
+        var currentLine = this.source.getCurrentLine();
+        var currentColumn = this.source.getCurrentColumn();
         if (hasSourceEnded()) return new Token(TokenType.T_ETX, new Position(currentLine, currentColumn), null);
 
         Token currentToken;
@@ -63,17 +54,18 @@ public class Tokenizer {
         }
     }
 
-    private void omitCommentTillEndOfLine() throws IOException {
+    private void omitCommentTillEndOfLine() throws IOException, SourceException {
         while(currentCharacter != '\n' && !hasSourceEnded()) {
             getNextCharacter();
         }
     }
 
-    private Token tryBuildNumber() throws IOException, IntegerOverflowException, DoubleOverflowException, InvalidTokenException {
+    private Token tryBuildNumber() throws IOException, IntegerOverflowException, DoubleOverflowException, InvalidTokenException, SourceException {
         if (!Character.isDigit(currentCharacter) && currentCharacter != DECIMAL_POINT) return null;
 
         int value = 0;
-        long startColumn = currentColumn;
+        var startColumn = this.source.getCurrentColumn();
+        var startLine = this.source.getCurrentLine();
         if (Character.isDigit(currentCharacter) && currentCharacter != '0') {
             try {
                 value = Math.addExact(value, (currentCharacter - '0'));
@@ -84,7 +76,7 @@ public class Tokenizer {
                 }
             } catch (ArithmeticException e) {
                 throw new IntegerOverflowException(
-                        String.format("Integer overflow found L:%d, C:%d", currentLine, currentColumn), currentLine, currentColumn);
+                        String.format("Integer overflow found L:%d, C:%d", startLine, startColumn), startLine, startColumn);
             }
         }
         if (currentCharacter == DECIMAL_POINT) {
@@ -94,37 +86,37 @@ public class Tokenizer {
             while (Character.isDigit(currentCharacter)) {
                 if (decimalPlaces > DOUBLE_NUMBERS_OF_PRECISION) {
                     throw new DoubleOverflowException(
-                            String.format("Double overflow found L:%d, C:%d", currentLine, currentColumn), currentLine, currentColumn);
+                            String.format("Double overflow found L:%d, C:%d", startLine, startColumn), startLine, startColumn);
                 }
                 try {
                     fractionPart = Math.addExact(Math.multiplyExact(fractionPart, 10), (currentCharacter - '0'));
                 } catch (ArithmeticException e) {
                     throw new DoubleOverflowException(
-                            String.format("Double overflow found L:%d, C:%d", currentLine, currentColumn), currentLine, currentColumn);
+                            String.format("Double overflow found L:%d, C:%d", startLine, startColumn), startLine, startColumn);
                 }
                 decimalPlaces++;
                 getNextCharacter();
             }
             if (Character.isLetter(currentCharacter) || currentCharacter == DECIMAL_POINT) {
-                throw new InvalidTokenException("Error while creating double literal", currentLine, startColumn);
+                throw new InvalidTokenException("Error while creating double literal", startLine, startColumn);
             }
             double finalValue = value + fractionPart / Math.pow(10, decimalPlaces);
             return new Token(TokenType.T_DOUBLE_LITERAL,
-                    new Position(currentLine, startColumn), finalValue);
+                    new Position(startLine, startColumn), finalValue);
         }
 
         if (Character.isLetter(currentCharacter)) {
-            throw new InvalidTokenException("Error while creating integer literal", currentLine, startColumn);
+            throw new InvalidTokenException("Error while creating integer literal", startLine, startColumn);
         }
         if (value == 0) {
             getNextCharacter();
         }
-        return new Token(TokenType.T_INT_LITERAL, new Position(currentLine, startColumn), value);
+        return new Token(TokenType.T_INT_LITERAL, new Position(startLine, startColumn), value);
     }
 
-    private Token tryBuildString() throws IOException, UnexpectedEndOfStringException, UnexpectedEndOfTextException {
+    private Token tryBuildString() throws IOException, UnexpectedEndOfStringException, UnexpectedEndOfTextException, SourceException {
         if (currentCharacter != '"') return null;
-        var stringLiteralBeginningColumn = currentColumn;
+        var stringLiteralBeginningColumn = this.source.getCurrentColumn();
         getNextCharacter();
         StringBuilder sb = new StringBuilder();
 
@@ -153,6 +145,8 @@ public class Tokenizer {
             getNextCharacter();
             return buildTokenWithTValue(TokenType.T_STRING_LITERAL, stringLiteralBeginningColumn, sb.toString());
         } else {
+            var currentLine = this.source.getCurrentLine();
+            var currentColumn = this.source.getCurrentColumn();
             if (hasSourceEnded()) {
                 throw new UnexpectedEndOfTextException(
                         String.format("Unexpected end of text occurred L:%d, C:%d", currentLine, currentColumn),
@@ -170,8 +164,8 @@ public class Tokenizer {
         return !str.matches("[a-zA-Z0-9\n]");
     }
 
-    private Token tryBuildIdentifierOrKeyword() throws IOException {
-        var startColumn = currentColumn;
+    private Token tryBuildIdentifierOrKeyword() throws IOException, SourceException {
+        var startColumn = this.source.getCurrentColumn();
         StringBuilder sb = new StringBuilder();
         if (!Character.isLetterOrDigit(currentCharacter) && !(currentCharacter == '_')
                 && !LexerMappingUtils.isSymbolicKeyword(String.valueOf((char)currentCharacter))) return null;
@@ -206,10 +200,10 @@ public class Tokenizer {
         }
     }
 
-    private Token tryBuildMultipleCharacterSymbol() throws IOException {
+    private Token tryBuildMultipleCharacterSymbol() throws IOException, SourceException {
         char firstChar = (char) currentCharacter;
         TokenType tokenType;
-        var startColumn = currentColumn;
+        var startColumn = this.source.getCurrentColumn();
         try {
             var opValue = String.valueOf(firstChar);
             tokenType = TokenType.fromString(opValue);
@@ -230,7 +224,7 @@ public class Tokenizer {
     }
 
     private <T> Token buildTokenWithTValue(TokenType type, long startColumn, T value) {
-        return new Token(type, new Position(currentLine, startColumn), value);
+        return new Token(type, new Position(this.source.getCurrentLine(), startColumn), value);
     }
 
     private boolean hasSourceEnded() {

@@ -8,7 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import source_loader.InputLoader;
+import source_loader.exception.SourceException;
+import source_loader.TextSource;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -545,7 +546,7 @@ class LexerTest {
     }
 
     @Test
-    void commentWithETXTests() throws InvalidTokenException, DoubleOverflowException, IOException, UnexpectedEndOfTextException, IntegerOverflowException, UnexpectedEndOfStringException {
+    void commentWithETXTests() throws InvalidTokenException, DoubleOverflowException, IOException, UnexpectedEndOfTextException, IntegerOverflowException, UnexpectedEndOfStringException, SourceException {
         String code = "#asd";
         var tokenizer = createTokenizer(code);
         var tokens = getTokens(tokenizer);
@@ -563,7 +564,7 @@ class LexerTest {
     }
 
 
-    private List<Token> getTokens(Tokenizer tokenizer) throws InvalidTokenException, DoubleOverflowException, IOException, UnexpectedEndOfTextException, IntegerOverflowException, UnexpectedEndOfStringException {
+    private List<Token> getTokens(Tokenizer tokenizer) throws InvalidTokenException, DoubleOverflowException, IOException, UnexpectedEndOfTextException, IntegerOverflowException, UnexpectedEndOfStringException, SourceException {
         List<Token> tokens = new ArrayList<>();
 
         if (tokenizer == null) {
@@ -580,10 +581,11 @@ class LexerTest {
     }
 
     private Tokenizer createTokenizer(String code) {
-        InputLoader il = new InputLoader();
+        TextSource ts = new TextSource(code);
+        ts.load();
         try {
-            return new Tokenizer(il.loadInput(code));
-        } catch (IOException e) {
+            return new Tokenizer(ts);
+        } catch (Exception e) {
             System.out.println("Failed to create new tokenizer" + e.getMessage());
             return null;
         }

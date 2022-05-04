@@ -3,23 +3,24 @@ package app;
 import lexer.Token;
 import lexer.TokenType;
 import lexer.Tokenizer;
-import source_loader.InputLoader;
+import source_loader.FileSource;
+import source_loader.exception.SourceException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class StartApplication {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, SourceException {
 
         String filePath = "";
 
         if (args.length > 0)
             filePath = args[0];
 
-        InputLoader il = new InputLoader(filePath);
-
-        var tokenizer = new Tokenizer(il.loadFile());
+        FileSource source = new FileSource(filePath);
+        source.load();
+        var tokenizer = new Tokenizer(source);
         List<Token> tokens = new ArrayList<>();
 
         try {

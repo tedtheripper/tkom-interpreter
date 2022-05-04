@@ -10,6 +10,7 @@ public class Tokenizer {
 
     private final static int DOUBLE_NUMBERS_OF_PRECISION = 16;
     private final static char DECIMAL_POINT = '.';
+    private final static int END_OF_SOURCE = -1;
 
     private Token currentToken;
     private int currentCharacter;
@@ -44,11 +45,11 @@ public class Tokenizer {
                 currentLine++;
                 currentColumn = 0;
             }
-            if (currentCharacter != -1)
+            if (!hasSourceEnded())
                 getNextCharacter();
         }
 
-        if (currentCharacter == -1) return new Token(TokenType.T_ETX, new Position(currentLine, currentColumn), null);
+        if (hasSourceEnded()) return new Token(TokenType.T_ETX, new Position(currentLine, currentColumn), null);
 
         if (tryBuildNumber()) return currentToken;
         if (tryBuildString()) return currentToken;
@@ -61,7 +62,7 @@ public class Tokenizer {
     }
 
     private void omitComment() throws IOException {
-        while(currentCharacter != '\n' && currentCharacter != -1) {
+        while(currentCharacter != '\n' && !hasSourceEnded()) {
             getNextCharacter();
         }
     }
@@ -128,7 +129,7 @@ public class Tokenizer {
         StringBuilder sb = new StringBuilder();
 
         while ((Character.isLetterOrDigit(currentCharacter) || Character.isSpaceChar(currentCharacter) || isAllowedSpecialCharacter((char)currentCharacter))
-            && currentCharacter != '"' && currentCharacter != -1) {
+            && currentCharacter != '"' && !hasSourceEnded()) {
             if (currentCharacter == '\\') {
                 getNextCharacter();
                 if (currentCharacter == -1) break;
@@ -153,7 +154,7 @@ public class Tokenizer {
             getNextCharacter();
             return true;
         } else {
-            if (currentCharacter == -1) {
+            if (hasSourceEnded()) {
                 throw new UnexpectedEndOfTextException(
                         String.format("Unexpected end of text occurred L:%d, C:%d", currentLine, currentColumn),
                         currentLine, currentColumn
@@ -234,4 +235,9 @@ public class Tokenizer {
     private <T> void buildTokenWithTValue(TokenType type, long startColumn, T value) {
         currentToken = new Token(type, new Position(currentLine, startColumn), value);
     }
+
+    private boolean hasSourceEnded() {
+        return currentCharacter == END_OF_SOURCE;
+    }
+
 }

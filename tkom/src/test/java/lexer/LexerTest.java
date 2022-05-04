@@ -1,6 +1,7 @@
 package lexer;
 
 
+import common.Position;
 import lexer.exception.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

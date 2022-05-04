@@ -1,5 +1,6 @@
 package lexer;
 
+import common.Position;
 import lexer.exception.*;
 import lexer.utils.LexerMappingUtils;
 import source_loader.Source;
@@ -12,6 +13,7 @@ public class Tokenizer {
     private final static int DOUBLE_NUMBERS_OF_PRECISION = 16;
     private final static char DECIMAL_POINT = '.';
     private final static int END_OF_SOURCE = -1;
+    private final static char END_OF_LINE = '\n';
 
     private int currentCharacter;
 
@@ -28,14 +30,7 @@ public class Tokenizer {
 
     public Token getNextToken() throws IOException, DoubleOverflowException, IntegerOverflowException, UnexpectedEndOfTextException, InvalidTokenException, UnexpectedEndOfStringException, SourceException {
 
-        while (Character.isWhitespace(currentCharacter) || (char)currentCharacter == '#') {
-            if (currentCharacter == '#') {
-                getNextCharacter();
-                omitCommentTillEndOfLine();
-            }
-            if (!hasSourceEnded())
-                getNextCharacter();
-        }
+        omitWhitespaceAndComments();
 
         var currentLine = this.source.getCurrentLine();
         var currentColumn = this.source.getCurrentColumn();
@@ -54,8 +49,19 @@ public class Tokenizer {
         }
     }
 
+    private void omitWhitespaceAndComments() throws IOException, SourceException {
+        while (Character.isWhitespace(currentCharacter) || (char)currentCharacter == '#') {
+            if (currentCharacter == '#') {
+                getNextCharacter();
+                omitCommentTillEndOfLine();
+            }
+            if (!hasSourceEnded())
+                getNextCharacter();
+        }
+    }
+
     private void omitCommentTillEndOfLine() throws IOException, SourceException {
-        while(currentCharacter != '\n' && !hasSourceEnded()) {
+        while(currentCharacter != END_OF_LINE && !hasSourceEnded()) {
             getNextCharacter();
         }
     }

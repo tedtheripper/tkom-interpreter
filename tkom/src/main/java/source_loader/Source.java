@@ -1,5 +1,6 @@
 package source_loader;
 
+import common.Position;
 import source_loader.exception.SourceException;
 
 import java.io.FileNotFoundException;
@@ -12,6 +13,8 @@ public interface Source {
     long getCurrentLine();
 
     long getCurrentColumn();
+
+    Position getCurrentPosition();
 
     void load() throws FileNotFoundException;
 }

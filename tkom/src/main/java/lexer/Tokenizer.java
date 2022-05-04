@@ -34,7 +34,7 @@ public class Tokenizer {
 
         var currentLine = this.source.getCurrentLine();
         var currentColumn = this.source.getCurrentColumn();
-        if (hasSourceEnded()) return new Token(TokenType.T_ETX, new Position(currentLine, currentColumn), null);
+        if (hasSourceEnded()) return new Token(TokenType.T_ETX, this.source.getCurrentPosition(), null);
 
         Token currentToken;
         if ((currentToken = tryBuildNumber()) != null

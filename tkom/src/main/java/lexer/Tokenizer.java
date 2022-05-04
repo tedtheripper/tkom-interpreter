@@ -12,7 +12,6 @@ public class Tokenizer {
     private final static char DECIMAL_POINT = '.';
     private final static int END_OF_SOURCE = -1;
 
-    private Token currentToken;
     private int currentCharacter;
 
     private long currentLine;
@@ -39,7 +38,7 @@ public class Tokenizer {
         while (Character.isWhitespace(currentCharacter) || (char)currentCharacter == '#') {
             if (currentCharacter == '#') {
                 getNextCharacter();
-                omitComment();
+                omitCommentTillEndOfLine();
             }
             if (currentCharacter == '\n') {
                 currentLine++;
@@ -51,24 +50,27 @@ public class Tokenizer {
 
         if (hasSourceEnded()) return new Token(TokenType.T_ETX, new Position(currentLine, currentColumn), null);
 
-        if (tryBuildNumber()) return currentToken;
-        if (tryBuildString()) return currentToken;
-        if (tryBuildMultipleCharacterSymbol()) return currentToken;
-        if (tryBuildIdentifierOrKeyword()) return currentToken;
-
-        throw new InvalidTokenException(
-                String.format("Invalid token found at L:%d, C:%d", currentLine, currentColumn),
-                currentLine, currentColumn);
+        Token currentToken;
+        if ((currentToken = tryBuildNumber()) != null
+        || (currentToken = tryBuildString()) != null
+        || (currentToken = tryBuildMultipleCharacterSymbol()) != null
+        || (currentToken = tryBuildIdentifierOrKeyword()) != null) {
+            return currentToken;
+        } else {
+            throw new InvalidTokenException(
+                    String.format("Invalid token found at L:%d, C:%d", currentLine, currentColumn),
+                    currentLine, currentColumn);
+        }
     }
 
-    private void omitComment() throws IOException {
+    private void omitCommentTillEndOfLine() throws IOException {
         while(currentCharacter != '\n' && !hasSourceEnded()) {
             getNextCharacter();
         }
     }
 
-    private boolean tryBuildNumber() throws IOException, IntegerOverflowException, DoubleOverflowException, InvalidTokenException {
-        if (!Character.isDigit(currentCharacter) && currentCharacter != DECIMAL_POINT) return false;
+    private Token tryBuildNumber() throws IOException, IntegerOverflowException, DoubleOverflowException, InvalidTokenException {
+        if (!Character.isDigit(currentCharacter) && currentCharacter != DECIMAL_POINT) return null;
 
         int value = 0;
         long startColumn = currentColumn;
@@ -107,23 +109,21 @@ public class Tokenizer {
                 throw new InvalidTokenException("Error while creating double literal", currentLine, startColumn);
             }
             double finalValue = value + fractionPart / Math.pow(10, decimalPlaces);
-            currentToken = new Token(TokenType.T_DOUBLE_LITERAL,
+            return new Token(TokenType.T_DOUBLE_LITERAL,
                     new Position(currentLine, startColumn), finalValue);
-            return true;
         }
 
         if (Character.isLetter(currentCharacter)) {
             throw new InvalidTokenException("Error while creating integer literal", currentLine, startColumn);
         }
-        currentToken = new Token(TokenType.T_INT_LITERAL, new Position(currentLine, startColumn), value);
         if (value == 0) {
             getNextCharacter();
         }
-        return true;
+        return new Token(TokenType.T_INT_LITERAL, new Position(currentLine, startColumn), value);
     }
 
-    private boolean tryBuildString() throws IOException, UnexpectedEndOfStringException, UnexpectedEndOfTextException {
-        if (currentCharacter != '"') return false;
+    private Token tryBuildString() throws IOException, UnexpectedEndOfStringException, UnexpectedEndOfTextException {
+        if (currentCharacter != '"') return null;
         var stringLiteralBeginningColumn = currentColumn;
         getNextCharacter();
         StringBuilder sb = new StringBuilder();
@@ -150,9 +150,8 @@ public class Tokenizer {
         }
 
         if (currentCharacter == '"') {
-            buildTokenWithTValue(TokenType.T_STRING_LITERAL, stringLiteralBeginningColumn, sb.toString());
             getNextCharacter();
-            return true;
+            return buildTokenWithTValue(TokenType.T_STRING_LITERAL, stringLiteralBeginningColumn, sb.toString());
         } else {
             if (hasSourceEnded()) {
                 throw new UnexpectedEndOfTextException(
@@ -171,17 +170,16 @@ public class Tokenizer {
         return !str.matches("[a-zA-Z0-9\n]");
     }
 
-    private boolean tryBuildIdentifierOrKeyword() throws IOException {
+    private Token tryBuildIdentifierOrKeyword() throws IOException {
         var startColumn = currentColumn;
         StringBuilder sb = new StringBuilder();
         if (!Character.isLetterOrDigit(currentCharacter) && !(currentCharacter == '_')
-                && !LexerMappingUtils.isSymbolicKeyword(String.valueOf((char)currentCharacter))) return false;
+                && !LexerMappingUtils.isSymbolicKeyword(String.valueOf((char)currentCharacter))) return null;
         sb.append((char)currentCharacter);
         getNextCharacter();
 
         if (LexerMappingUtils.isSymbolicKeyword(sb.toString())) {
-            buildTokenWithTValue(getTokenTypeFromString(sb.toString()), startColumn, sb.toString());
-            return true;
+            return buildTokenWithTValue(getTokenTypeFromString(sb.toString()), startColumn, sb.toString());
         }
 
         while(Character.isLetterOrDigit(currentCharacter) || currentCharacter == '_') {
@@ -189,12 +187,13 @@ public class Tokenizer {
             getNextCharacter();
         }
 
-        if (sb.toString().length() == 0) return false;
+        if (sb.toString().length() == 0) return null;
         var tokenType = getTokenTypeFromString(sb.toString());
         if (tokenType.equals(TokenType.T_BOOL_LITERAL)) {
-            buildTokenWithTValue(tokenType, startColumn, Boolean.valueOf(sb.toString()));
-        } else buildTokenWithTValue(tokenType, startColumn, sb.toString());
-        return true;
+            return buildTokenWithTValue(tokenType, startColumn, Boolean.valueOf(sb.toString()));
+        } else {
+            return buildTokenWithTValue(tokenType, startColumn, sb.toString());
+        }
     }
 
     private TokenType getTokenTypeFromString(String value) {
@@ -207,33 +206,31 @@ public class Tokenizer {
         }
     }
 
-    private boolean tryBuildMultipleCharacterSymbol() throws IOException {
+    private Token tryBuildMultipleCharacterSymbol() throws IOException {
         char firstChar = (char) currentCharacter;
         TokenType tokenType;
         var startColumn = currentColumn;
         try {
             var opValue = String.valueOf(firstChar);
             tokenType = TokenType.fromString(opValue);
-            if (!LexerMappingUtils.isSymbolicOperator(opValue)) return false;
+            if (!LexerMappingUtils.isSymbolicOperator(opValue)) return null;
         } catch (IllegalArgumentException e) {
-            return false;
+            return null;
         }
         getNextCharacter();
         try {
             var multipleCharacterSymbol = "" + firstChar + (char) currentCharacter;
             tokenType = TokenType.fromString(multipleCharacterSymbol);
-            if (!LexerMappingUtils.isSymbolicOperator(multipleCharacterSymbol)) return false;
+            if (!LexerMappingUtils.isSymbolicOperator(multipleCharacterSymbol)) return null;
             getNextCharacter();
-            buildTokenWithTValue(tokenType, startColumn, multipleCharacterSymbol);
+            return buildTokenWithTValue(tokenType, startColumn, multipleCharacterSymbol);
         } catch (IllegalArgumentException e) {
-            buildTokenWithTValue(tokenType, startColumn, String.valueOf(firstChar));
+            return buildTokenWithTValue(tokenType, startColumn, String.valueOf(firstChar));
         }
-        return true;
-
     }
 
-    private <T> void buildTokenWithTValue(TokenType type, long startColumn, T value) {
-        currentToken = new Token(type, new Position(currentLine, startColumn), value);
+    private <T> Token buildTokenWithTValue(TokenType type, long startColumn, T value) {
+        return new Token(type, new Position(currentLine, startColumn), value);
     }
 
     private boolean hasSourceEnded() {

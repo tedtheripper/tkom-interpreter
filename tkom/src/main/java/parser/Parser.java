@@ -52,17 +52,18 @@ public class Parser {
 
     private Statement tryParseStatementOrFunctionDef() throws IOException, LexerException, SourceException, SyntaxException {
         Statement statement;
-        if (checkAndConsume(TokenType.T_FUNC_KEYWORD)) {
-            statement = tryParseFunctionDefinition();
-        } else {
-            statement = tryParseStatement();
+        if ((statement = tryParseFunctionDefinition()) != null
+            || (statement = tryParseStatement()) != null) {
+            return statement;
         }
-        return statement;
+        return null;
     }
 
     // functionDef = "func", identifier, "(", [parametersList], ")", ":", type, "{", statementBlock, "}" ;
     private FunctionDef tryParseFunctionDefinition() throws IOException, LexerException, SourceException, SyntaxException {
 
+        if (!checkAndConsume(TokenType.T_FUNC_KEYWORD))
+            return null;
         if(!check(TokenType.T_IDENTIFIER))
             throwUnexpectedTokenException(TokenType.T_IDENTIFIER);
 

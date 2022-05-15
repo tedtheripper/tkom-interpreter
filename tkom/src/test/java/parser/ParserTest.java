@@ -1990,7 +1990,109 @@ class ParserTest {
                         default => print("Is not a number"),
                     }
                     """;
+            var parser = getParser(code);
+            var program = parser.parse();
 
+            var function1 = program.getFunctions().get("even");
+            var expectedFunctionDef1 = new FunctionDef(
+                    "even",
+                    new Type(false, "bool"),
+                    List.of(new Parameter(new Type(false, "int"), "value")),
+                    List.of(
+                            new ReturnStatement(
+                                    new CompExpression(
+                                            new ModExpression(new Identifier("value"), new IntegerLiteralExpression(2)),
+                                            new IntegerLiteralExpression(0),
+                                            new Operator("==")
+                                    )
+                            )
+
+                    )
+            );
+            assertEquals(expectedFunctionDef1, function1);
+
+            var function2 = program.getFunctions().get("odd_and_divisible");
+            var expectedFunctionDef2 = new FunctionDef(
+                    "odd_and_divisible",
+                    new Type(false, "bool"),
+                    List.of(
+                            new Parameter(new Type(false, "int"), "value"),
+                            new Parameter(new Type(false, "int"), "div")
+                    ),
+                    List.of(
+                            new ReturnStatement(
+                                    new AndExpression(
+                                            new CompExpression(
+                                                    new ModExpression(new Identifier("value"), new IntegerLiteralExpression(2)),
+                                                    new IntegerLiteralExpression(1),
+                                                    new Operator("==")
+                                            ),
+                                            new CompExpression(
+                                                    new ModExpression(new Identifier("value"), new Identifier("div")),
+                                                    new IntegerLiteralExpression(0),
+                                                    new Operator("==")
+                                            )
+                                    )
+                            )
+
+                    )
+            );
+            assertEquals(expectedFunctionDef2, function2);
+
+            var varDeclaration = (VariableDeclarationStatement)program.getStatements().get(0);
+            var expectedVarDeclaration = new VariableDeclarationStatement(
+                    false,
+                    new Type(false, "string"),
+                    "userInput",
+                    new NullCheckExpression(
+                            new FunctionCallExpression("get_input", List.of()),
+                            new StringLiteralExpression("")
+                    )
+            );
+
+            assertEquals(expectedVarDeclaration, varDeclaration);
+
+            var matchStatement = (MatchStatement)program.getStatements().get(1);
+            var expectedMatchStatement = new MatchStatement(
+                    new IsAsExpression(new Identifier("userInput"), new Type(true, "int"), new Operator("as")),
+                    List.of(
+                            new InsideMatchStatement(
+                                    false,
+                                    new AndExpression(
+                                            new InsideMatchTypeExpression(new Type(false, "int")),
+                                            new Identifier("even")
+                                    ),
+                                    new FunctionCallExpression("print", List.of(
+                                            new StringLiteralExpression("Number"),
+                                            new Identifier("_"),
+                                            new StringLiteralExpression(" is even")
+                                    ))
+                            ),
+                            new InsideMatchStatement(
+                                    false,
+                                    new AndExpression(
+                                            new InsideMatchTypeExpression(new Type(false, "int")),
+                                            new FunctionCallExpression(
+                                                    "odd_and_divisible",
+                                                    List.of(
+                                                            new Identifier("_"),
+                                                            new IntegerLiteralExpression(3)
+                                                    )
+                                            )
+                                    ),
+                                    new FunctionCallExpression("print", List.of(
+                                            new StringLiteralExpression("Number"),
+                                            new Identifier("_"),
+                                            new StringLiteralExpression(" is odd and divisible by 3")
+                                    ))
+                            ),
+                            new InsideMatchStatement(
+                                    true,
+                                    null,
+                                    new FunctionCallExpression("print", List.of(new StringLiteralExpression("Is not a number"))))
+                    )
+            );
+            assertEquals(expectedMatchStatement, matchStatement);
         }
     }
 

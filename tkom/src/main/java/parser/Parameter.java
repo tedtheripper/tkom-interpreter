@@ -1,11 +1,14 @@
 package parser;
 
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+@EqualsAndHashCode
 public class Parameter {
     private final Type type;
     private final String identifier;
 
-    public Parameter(Type type, String identifier) {
-        this.type = type;
-        this.identifier = identifier;
-    }
 }

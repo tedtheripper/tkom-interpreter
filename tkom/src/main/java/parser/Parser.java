@@ -44,6 +44,9 @@ public class Parser {
                 statements.add(programStatement);
             }
         }
+        if (!checkAndConsume(TokenType.T_ETX)) {
+            throwUnexpectedTokenException(currentToken.position(), currentToken.type(), TokenType.T_ETX);
+        }
         return new Program(functions, statements);
     }
 
@@ -61,7 +64,7 @@ public class Parser {
     private FunctionDef tryParseFunctionDefinition() throws IOException, LexerException, SourceException, SyntaxException {
 
         if(!currentToken.is(TokenType.T_IDENTIFIER))
-            return null;
+            throwUnexpectedTokenException(currentToken.position(), currentToken.type(), TokenType.T_IDENTIFIER);
 
         var name = currentToken.value().toString();
         getNextToken();
@@ -72,6 +75,8 @@ public class Parser {
         checkConsumeOrThrow(TokenType.T_COLON);
 
         var type = tryParseType();
+        if (type == null)
+            throwUnexpectedTokenException(currentToken.position(), currentToken.type(), TokenType.T_TYPE);
         checkConsumeOrThrow(TokenType.T_CURLY_OPEN);
         var statementsBlock = tryParseStatementsBlock();
         if (statementsBlock.isEmpty())
@@ -82,14 +87,17 @@ public class Parser {
     }
 
     // type                 = nonNullableType, ["?"]
-    //                      | "void";
+    //                      | "void"
+    //                      | "null" ;
     private Type tryParseType() throws IOException, LexerException, SourceException {
         boolean isNullable = false;
-        if (!currentToken.is(TokenType.T_TYPE))
+        if (!currentToken.is(TokenType.T_TYPE)
+                && !currentToken.is(TokenType.T_NULL_LITERAL)
+                && !currentToken.is(TokenType.T_VOID_TYPE))
             return null;
         var typeName = currentToken.value().toString();
         getNextToken();
-        if (!typeName.equals(TokenType.T_VOID_TYPE.getText()))
+        if (!typeName.equals(TokenType.T_VOID_TYPE.getText()) && !typeName.equals(TokenType.T_NULL_LITERAL.getText()))
             isNullable = checkAndConsume(TokenType.T_TYPE_OPT);
         return new Type(isNullable, typeName);
     }
@@ -215,7 +223,7 @@ public class Parser {
         while(checkAndConsume(TokenType.T_COMMA)) {
             expression = tryParseExpression();
             if (expression == null)
-                throw new MissingExpressionException(currentToken.position());
+                throwMissingExpressionException(currentToken.position());
             argumentList.add(expression);
         }
 
@@ -226,11 +234,13 @@ public class Parser {
     private VariableDeclarationStatement tryParseVariableDeclaration() throws IOException, LexerException, SourceException, SyntaxException {
         var isMutable = checkAndConsume(TokenType.T_MUTABLE);
         var type = tryParseType();
-        if (type == null)
+        if (isMutable && type == null) {
+            throwUnexpectedTokenException(currentToken.position(), currentToken.type(), TokenType.T_TYPE);
+        } else if (type == null)
             return null;
 
         if (!currentToken.is(TokenType.T_IDENTIFIER))
-            throw new UnexpectedTokenException(currentToken.position(), currentToken.type(), TokenType.T_IDENTIFIER);
+            throwUnexpectedTokenException(currentToken.position(), currentToken.type(), TokenType.T_IDENTIFIER);
         var name = currentToken.value().toString();
         getNextToken();
         checkConsumeOrThrow(TokenType.T_ASSIGNMENT_OP);
@@ -262,6 +272,7 @@ public class Parser {
             throwMissingExpressionException(currentToken.position());
 
         checkConsumeOrThrow(TokenType.T_PAREN_CLOSE);
+        checkConsumeOrThrow(TokenType.T_CURLY_OPEN);
 
         var statementList = tryParseStatementsBlock();
 
@@ -320,6 +331,9 @@ public class Parser {
         while((statement = tryParseInsideMatchStatement()) != null) {
             matchStatements.add(statement);
         }
+        if (matchStatements.isEmpty())
+            throwMissingStatementException(currentToken.position());
+
         checkConsumeOrThrow(TokenType.T_CURLY_CLOSE);
 
         return new MatchStatement(expression, matchStatements);
@@ -399,7 +413,7 @@ public class Parser {
         var rightExpression = tryParseNullCheckExpression();
         if (rightExpression == null)
             throwMissingExpressionException(currentToken.position());
-        return new MainExpression(leftExpression, rightExpression);
+        return new AssignmentExpression(leftExpression, rightExpression);
     }
 
     // nullCheckExpression   = orExpression, {"??", orExpression} ;
@@ -470,7 +484,7 @@ public class Parser {
         getNextToken();
         var type = tryParseType();
         if (type == null)
-            throwMissingExpressionException(currentToken.position());
+            throwUnexpectedTokenException(currentToken.position(), currentToken.type(), TokenType.T_TYPE);
 
         var operator = new Operator(foundOperator.getText());
         return new IsAsExpression(leftExpression, type, operator);
@@ -482,15 +496,15 @@ public class Parser {
         if (leftExpression == null)
             return null;
         while(OperatorUtils.isAddOp(currentToken.type())) {
+            var foundType = currentToken.type();
+            getNextToken();
             var rightExpression = tryParseMultiplicativeExpression();
             if (rightExpression == null)
                 throwMissingExpressionException(currentToken.position());
-            if (currentToken.is(TokenType.T_ADD_OP)) {
+            if (foundType.equals(TokenType.T_ADD_OP)) {
                 leftExpression = new AddExpression(leftExpression, rightExpression);
-                getNextToken();
             } else {
                 leftExpression = new SubExpression(leftExpression, rightExpression);
-                getNextToken();
             }
         }
         return leftExpression;
@@ -541,6 +555,7 @@ public class Parser {
             if (expression == null)
                 throwMissingExpressionException(currentToken.position());
             checkConsumeOrThrow(TokenType.T_PAREN_CLOSE);
+            return expression;
         } else if (currentToken.is(TokenType.T_IDENTIFIER) || currentToken.is(TokenType.T_UNDERSCORE)) {
             var name = currentToken.value().toString();
             getNextToken();

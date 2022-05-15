@@ -85,6 +85,8 @@ public class Tokenizer {
                         String.format("Integer overflow found L:%d, C:%d", startLine, startColumn), startLine, startColumn);
             }
         }
+        if (currentCharacter == '0')
+            getNextCharacter();
         if (currentCharacter == DECIMAL_POINT) {
             long fractionPart = 0;
             int decimalPlaces = 0;
@@ -113,9 +115,6 @@ public class Tokenizer {
 
         if (Character.isLetter(currentCharacter)) {
             throw new InvalidTokenException("Error while creating integer literal", startLine, startColumn);
-        }
-        if (value == 0) {
-            getNextCharacter();
         }
         return new Token(TokenType.T_INT_LITERAL, new Position(startLine, startColumn), value);
     }

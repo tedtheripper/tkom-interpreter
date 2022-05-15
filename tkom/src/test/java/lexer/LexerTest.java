@@ -359,8 +359,7 @@ class LexerTest {
                     new Token(TokenType.T_PAREN_OPEN, new Position(14, 11), "("),
                     new Token(TokenType.T_IDENTIFIER, new Position(14, 12), "sum"),
                     new Token(TokenType.T_NULL_COMP_OP, new Position(14, 16), "??"),
-                    new Token(TokenType.T_INT_LITERAL, new Position(14, 19), 0),
-                    new Token(TokenType.T_DOUBLE_LITERAL, new Position(14, 20), 0.0),
+                    new Token(TokenType.T_DOUBLE_LITERAL, new Position(14, 19), 0.0),
                     new Token(TokenType.T_PAREN_CLOSE, new Position(14, 22), ")"),
                     new Token(TokenType.T_ADD_OP, new Position(14, 24), "+"),
                     new Token(TokenType.T_IDENTIFIER, new Position(14, 26), "fib"),
@@ -396,7 +395,7 @@ class LexerTest {
                     new Token(TokenType.T_ETX, new Position(20, 1), null)
             );
 
-            assert tokens.size() == 101;
+            assert tokens.size() == expectedTokens.size();
             assertEquals(expectedTokens, tokens);
         }
 

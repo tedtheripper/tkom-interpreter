@@ -1,10 +1,14 @@
 package parser.expressions;
 
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+@EqualsAndHashCode
 public class DoubleLiteralExpression implements Expression {
 
     private final Double value;
 
-    public DoubleLiteralExpression(Double value) {
-        this.value = value;
-    }
 }

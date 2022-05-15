@@ -23,18 +23,18 @@ public class OperatorUtils {
     );
 
     public static boolean isCompOp(TokenType type) {
-        return compOps.contains(type.getText());
+        return type.getText() != null && compOps.contains(type.getText());
     }
 
     public static boolean isAddOp(TokenType type) {
-        return addOps.contains(type.getText());
+        return type.getText() != null && addOps.contains(type.getText());
     }
 
     public static boolean isMulOp(TokenType type) {
-        return mulOps.contains(type.getText());
+        return type.getText() != null && mulOps.contains(type.getText());
     }
 
     public static boolean isIsAsOp(TokenType type) {
-        return isAsOps.contains(type.getText());
+        return type.getText() != null && isAsOps.contains(type.getText());
     }
 }

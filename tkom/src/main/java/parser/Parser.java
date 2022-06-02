@@ -36,27 +36,19 @@ public class Parser {
 
         Map<String, FunctionDef> functions = new HashMap<>();
         List<Statement> statements = new ArrayList<>();
-        Statement programStatement;
-        while((programStatement = tryParseStatementOrFunctionDef()) != null) {
-            if (programStatement instanceof FunctionDef funcDef) {
+        Statement statement;
+        while((statement = tryParseFunctionDefinition()) != null
+                || (statement = tryParseStatement()) != null) {
+            if (statement instanceof FunctionDef funcDef) {
                 functions.put(funcDef.getName(), funcDef);
             } else {
-                statements.add(programStatement);
+                statements.add(statement);
             }
         }
         if (!checkAndConsume(TokenType.T_ETX)) {
             throwUnexpectedTokenException(TokenType.T_ETX);
         }
         return new Program(functions, statements);
-    }
-
-    private Statement tryParseStatementOrFunctionDef() throws IOException, LexerException, SourceException, SyntaxException {
-        Statement statement;
-        if ((statement = tryParseFunctionDefinition()) != null
-            || (statement = tryParseStatement()) != null) {
-            return statement;
-        }
-        return null;
     }
 
     // functionDef = "func", identifier, "(", [parametersList], ")", ":", type, "{", statementBlock, "}" ;
@@ -88,17 +80,15 @@ public class Parser {
     }
 
     // type                 = nonNullableType, ["?"]
-    //                      | "void"
-    //                      | "null" ;
+    //                      | "void" ;
     private Type tryParseType() throws IOException, LexerException, SourceException {
         boolean isNullable = false;
         if (!check(TokenType.T_TYPE)
-                && !check(TokenType.T_NULL_LITERAL)
                 && !check(TokenType.T_VOID_TYPE))
             return null;
         var typeName = getCurrentTokenValue().toString();
         getNextToken();
-        if (!typeName.equals(TokenType.T_VOID_TYPE.getText()) && !typeName.equals(TokenType.T_NULL_LITERAL.getText()))
+        if (!typeName.equals(TokenType.T_VOID_TYPE.getText()))
             isNullable = checkAndConsume(TokenType.T_TYPE_OPT);
         return new Type(isNullable, typeName);
     }
@@ -136,8 +126,9 @@ public class Parser {
         return parameterList;
     }
 
-    // parameter = type, identifier ;
+    // parameter = ["mutable"], type, identifier ;
     private Parameter tryParseParameter() throws IOException, LexerException, SourceException, SyntaxException {
+        var isMutable = checkAndConsume(TokenType.T_MUTABLE);
         var type = tryParseType();
         if (type == null)
             return null;
@@ -147,7 +138,7 @@ public class Parser {
         var identifier = getCurrentTokenValue().toString();
         getNextToken();
 
-        return new Parameter(type, identifier);
+        return new Parameter(isMutable, type, identifier);
     }
 
     // statement            = conditionalStatement
@@ -374,15 +365,18 @@ public class Parser {
 
     // insideMatchExpression = comparisonOp, valueLiteral
     //                       | expression
-    //                       | "is", type;
+    //                       | "is", (type | "null");
     private Expression tryParseInsideMatchExpression() throws IOException, LexerException, SourceException, SyntaxException {
         var expression = tryParseExpression();
         if (expression != null)
             return expression;
         if (checkAndConsume(TokenType.T_IS_OP)) {
             var type = tryParseType();
-            if (type == null)
+            if (type == null && checkAndConsume(TokenType.T_NULL_LITERAL)) {
+                return new InsideMatchTypeExpression(null);
+            } else if (type == null) {
                 throwUnexpectedTokenException(TokenType.T_TYPE);
+            }
             return new InsideMatchTypeExpression(type);
         } else if (OperatorUtils.isCompOp(getCurrentTokenType())) {
             var foundOperator = getCurrentTokenValue().toString();
@@ -474,7 +468,7 @@ public class Parser {
         return new CompExpression(leftExpression, rightExpression, new Operator(savedType.getText()));
     }
 
-    // isasExpression        = addExpression, [("is" | "as"), type] ;
+    // isasExpression        = addExpression, [("is" | "as"), (type | "null")] ;
     private Expression tryParseIsAsExpression() throws IOException, LexerException, SourceException, SyntaxException {
         var leftExpression = tryParseAdditiveExpression();
         if (leftExpression == null)
@@ -484,8 +478,9 @@ public class Parser {
         var foundOperator = getCurrentTokenType();
         getNextToken();
         var type = tryParseType();
-        if (type == null)
+        if (type == null && !checkAndConsume(TokenType.T_NULL_LITERAL)) {
             throwUnexpectedTokenException(TokenType.T_TYPE);
+        }
 
         var operator = new Operator(foundOperator.getText());
         return new IsAsExpression(leftExpression, type, operator);

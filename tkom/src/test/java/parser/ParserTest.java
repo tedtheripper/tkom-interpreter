@@ -371,7 +371,7 @@ class ParserTest {
                         Arguments.of("a is double?;", new Type(true, "double"), new Operator("is")),
                         Arguments.of("a is string;", new Type(false, "string"), new Operator("is")),
                         Arguments.of("a is string?;", new Type(true, "string"), new Operator("is")),
-                        Arguments.of("a is null;", new Type(false, "null"), new Operator("is")),
+                        Arguments.of("a is null;", null, new Operator("is")),
                         Arguments.of("a is void;", new Type(false, "void"), new Operator("is"))
                 );
             }
@@ -386,7 +386,7 @@ class ParserTest {
                         Arguments.of("a as double?;", new Type(true, "double"), new Operator("as")),
                         Arguments.of("a as string;", new Type(false, "string"), new Operator("as")),
                         Arguments.of("a as string?;", new Type(true, "string"), new Operator("as")),
-                        Arguments.of("a as null;", new Type(false, "null"), new Operator("as")),
+                        Arguments.of("a as null;", null, new Operator("as")),
                         Arguments.of("a as void;", new Type(false, "void"), new Operator("as"))
                 );
             }
@@ -1194,7 +1194,7 @@ class ParserTest {
                 var insideStatement = (InsideMatchStatement)matchSt.getMatchStatements().get(0);
                 assertEquals(false, insideStatement.getIsDefault());
                 assertEquals(
-                        new InsideMatchTypeExpression(new Type(false, "null")),
+                        new InsideMatchTypeExpression(null),
                         insideStatement.getExpression());
             }
 
@@ -1681,7 +1681,7 @@ class ParserTest {
                 var expectedFunctionDef = new FunctionDef(
                         "test",
                         new Type(false, "int"),
-                        List.of(new Parameter(new Type(true, "int"), "a")),
+                        List.of(new Parameter(false, new Type(true, "int"), "a")),
                         List.of(new ReturnStatement(new NullCheckExpression(new Identifier("a"), new IntegerLiteralExpression(0))))
                 );
                 assertEquals(expectedFunctionDef, function);
@@ -1754,8 +1754,8 @@ class ParserTest {
                         "test",
                         new Type(false, "void"),
                         List.of(
-                                new Parameter(new Type(true, "int"), "a"),
-                                new Parameter(new Type(false, "string"), "b")
+                                new Parameter(false, new Type(true, "int"), "a"),
+                                new Parameter(false, new Type(false, "string"), "b")
                         ),
                         List.of(new VariableDeclarationStatement(false,
                                 new Type(false, "int"),
@@ -1809,8 +1809,8 @@ class ParserTest {
                         "test",
                         new Type(false, "void"),
                         List.of(
-                                new Parameter(new Type(true, "int"), "a"),
-                                new Parameter(new Type(false, "string"), "b")
+                                new Parameter(false, new Type(true, "int"), "a"),
+                                new Parameter(false, new Type(false, "string"), "b")
                         ),
                         List.of(new VariableDeclarationStatement(false,
                                 new Type(false, "int"),
@@ -1881,7 +1881,7 @@ class ParserTest {
             var expectedFunctionDef = new FunctionDef(
                     "fib",
                     new Type(false, "int"),
-                    List.of(new Parameter(new Type(false, "int"), "n")),
+                    List.of(new Parameter(false, new Type(false, "int"), "n")),
                     List.of(
                             new IfStatement(new IfBlock(new CompExpression(
                                     new Identifier("n"),
@@ -1997,7 +1997,7 @@ class ParserTest {
             var expectedFunctionDef1 = new FunctionDef(
                     "even",
                     new Type(false, "bool"),
-                    List.of(new Parameter(new Type(false, "int"), "value")),
+                    List.of(new Parameter(false, new Type(false, "int"), "value")),
                     List.of(
                             new ReturnStatement(
                                     new CompExpression(
@@ -2016,8 +2016,8 @@ class ParserTest {
                     "odd_and_divisible",
                     new Type(false, "bool"),
                     List.of(
-                            new Parameter(new Type(false, "int"), "value"),
-                            new Parameter(new Type(false, "int"), "div")
+                            new Parameter(false, new Type(false, "int"), "value"),
+                            new Parameter(false, new Type(false, "int"), "div")
                     ),
                     List.of(
                             new ReturnStatement(

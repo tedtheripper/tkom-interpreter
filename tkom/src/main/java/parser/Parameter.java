@@ -8,6 +8,7 @@ import lombok.Getter;
 @Getter
 @EqualsAndHashCode
 public class Parameter {
+    private final boolean isMutable;
     private final Type type;
     private final String identifier;
 

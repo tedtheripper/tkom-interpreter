@@ -12,7 +12,7 @@ import java.io.IOException;
 public class StartApplication {
     public static void main(String[] args) throws IOException, SourceException, LexerException, SyntaxException {
 
-        String filePath = "/run/media/tedtheripper/Work/semestr6/TKOM/repo/tkom-project/tkom/target/test-copy.txt";
+        String filePath = "";
 
         if (args.length > 0)
             filePath = args[0];

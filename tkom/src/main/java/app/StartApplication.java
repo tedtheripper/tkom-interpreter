@@ -1,17 +1,16 @@
 package app;
 
-import lexer.Token;
-import lexer.TokenType;
 import lexer.Tokenizer;
+import lexer.exception.LexerException;
+import parser.Parser;
+import parser.exception.SyntaxException;
 import source_loader.FileSource;
 import source_loader.exception.SourceException;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class StartApplication {
-    public static void main(String[] args) throws IOException, SourceException {
+    public static void main(String[] args) throws IOException, SourceException, LexerException, SyntaxException {
 
         String filePath = "";
 
@@ -21,21 +20,28 @@ public class StartApplication {
         FileSource source = new FileSource(filePath);
         source.load();
         var tokenizer = new Tokenizer(source);
-        List<Token> tokens = new ArrayList<>();
 
-        try {
-            var token = tokenizer.getNextToken();
-            tokens.add(token);
-            while(token.type() != TokenType.T_ETX) {
-                token = tokenizer.getNextToken();
-                tokens.add(token);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        var parser = new Parser(tokenizer);
 
-        for(var item : tokens) {
-            System.out.println(item);
-        }
+        var program = parser.parse();
+
+//        List<Token> tokens = new ArrayList<>();
+//
+//        try {
+//            var token = tokenizer.getNextToken();
+//            tokens.add(token);
+//            while(token.type() != TokenType.T_ETX) {
+//                token = tokenizer.getNextToken();
+//                tokens.add(token);
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+
+//        for(var item : tokens) {
+//            System.out.println(item);
+//        }
+
+        System.out.println("FINISHED");
     }
 }

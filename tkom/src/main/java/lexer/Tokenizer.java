@@ -10,10 +10,10 @@ import java.io.IOException;
 
 public class Tokenizer {
 
-    private final static int DOUBLE_NUMBERS_OF_PRECISION = 16;
-    private final static char DECIMAL_POINT = '.';
-    private final static int END_OF_SOURCE = -1;
-    private final static char END_OF_LINE = '\n';
+    private static final int DOUBLE_NUMBERS_OF_PRECISION = 16;
+    private static final char DECIMAL_POINT = '.';
+    private static final int END_OF_SOURCE = -1;
+    private static final char END_OF_LINE = '\n';
 
     private int currentCharacter;
 
@@ -85,6 +85,8 @@ public class Tokenizer {
                         String.format("Integer overflow found L:%d, C:%d", startLine, startColumn), startLine, startColumn);
             }
         }
+        if (currentCharacter == '0')
+            getNextCharacter();
         if (currentCharacter == DECIMAL_POINT) {
             long fractionPart = 0;
             int decimalPlaces = 0;
@@ -113,9 +115,6 @@ public class Tokenizer {
 
         if (Character.isLetter(currentCharacter)) {
             throw new InvalidTokenException("Error while creating integer literal", startLine, startColumn);
-        }
-        if (value == 0) {
-            getNextCharacter();
         }
         return new Token(TokenType.T_INT_LITERAL, new Position(startLine, startColumn), value);
     }
@@ -173,7 +172,7 @@ public class Tokenizer {
     private Token tryBuildIdentifierOrKeyword() throws IOException, SourceException {
         var startColumn = this.source.getCurrentColumn();
         StringBuilder sb = new StringBuilder();
-        if (!Character.isLetterOrDigit(currentCharacter) && !(currentCharacter == '_')
+        if (!Character.isLetterOrDigit(currentCharacter) && (currentCharacter != '_')
                 && !LexerMappingUtils.isSymbolicKeyword(String.valueOf((char)currentCharacter))) return null;
         sb.append((char)currentCharacter);
         getNextCharacter();

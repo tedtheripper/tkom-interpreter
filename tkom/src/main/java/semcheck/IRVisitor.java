@@ -3,6 +3,7 @@ package semcheck;
 import executor.ir.Expression;
 import executor.ir.*;
 import executor.ir.expressions.AsExpression;
+import executor.ir.expressions.ConstExpression;
 import executor.ir.expressions.IsExpression;
 import executor.ir.instructions.*;
 import parser.Parameter;
@@ -33,7 +34,7 @@ public class IRVisitor implements Visitor {
     private boolean insideMatchType = false;
 
     public IRVisitor() {
-        // TODO document why this constructor is empty
+        //
     }
 
     public GlobalBlock export(Program program) throws SemCheckException {
@@ -52,6 +53,7 @@ public class IRVisitor implements Visitor {
         }
         var block = scopedBlocks.pop();
         globalBlock.setInstructions(block.getInstructions());
+        globalBlock.getGlobalScope().setDeclaredVariables(block.getScope().getDeclaredVariables());
         if (!scopedBlocks.isEmpty()) {
             throw new SemCheckException("Invalid stack state");
         }
@@ -62,6 +64,7 @@ public class IRVisitor implements Visitor {
         currentFunctionDef = new Function();
         currentFunctionDef.setName(functionDef.getName());
         currentFunctionDef.setScope(new Scope());
+        currentFunctionDef.getScope().setUpperScope(globalBlock.getGlobalScope());
         functionDef.getParameterList().forEach(param -> param.accept(this));
         functionReturnType = true;
         functionDef.getFunctionReturnType().accept(this);
@@ -129,8 +132,8 @@ public class IRVisitor implements Visitor {
     @Override
     public void visitInsideMatchStatement(InsideMatchStatement insideMatchStatement) throws SemCheckException {
         InsideMatchInstruction currentInsideMatchInstruction = new InsideMatchInstruction();
-        currentInsideMatchInstruction.setDefault(insideMatchStatement.getIsDefault());
-        if (!insideMatchStatement.getIsDefault()) {
+        currentInsideMatchInstruction.setDefault(insideMatchStatement.isDefault());
+        if (!insideMatchStatement.isDefault()) {
             expressionAsInstruction = false;
             insideMatchStatement.getExpression().accept(this);
             expressionAsInstruction = true;
@@ -162,6 +165,7 @@ public class IRVisitor implements Visitor {
     @Override
     public void visitMatchStatement(MatchStatement matchStatement) throws SemCheckException {
         currentMatchInstruction = new MatchInstruction();
+        currentMatchInstruction.setScope(new Scope(scopedBlocks.peek().getScope().getUpperScope()));
         currentMatchInstruction.setMatchStatements(new ArrayList<>());
         expressionAsInstruction = false;
         matchStatement.getExpression().accept(this);
@@ -266,12 +270,21 @@ public class IRVisitor implements Visitor {
         var right = expressions.pop();
         var left = expressions.pop();
         if (!(left instanceof executor.ir.expressions.Identifier)) {
-            // TODO: throw exception tried assignning to non identifier
+            throw new SemCheckException("Tried to assign value to non-identifier");
         }
         exp = (executor.ir.expressions.AssignmentExpression) expressions.pop();
         if (left instanceof executor.ir.expressions.Identifier id) {
             exp.setVariableName(id.getName());
             exp.setRightSide(right);
+        }
+
+        if (!scopedBlocks.peek().getScope().hasVariable(exp.getVariableName())) {
+            throw new SemCheckException(String.format("Variable %s has not been declared", exp.getVariableName()));
+        } else {
+            var variable = scopedBlocks.peek().getScope().getVariable(exp.getVariableName());
+            if (!variable.isMutable()) {
+                throw new SemCheckException("Tried changing value of constant variable");
+            }
         }
 
         if (expressionAsInstruction) {
@@ -355,6 +368,7 @@ public class IRVisitor implements Visitor {
         var exp = new FunctionCall();
         exp.setName(functionCallExpression.getIdentifier());
         expressions.push(exp);
+        expressionAsInstruction = false;
         for(var e : functionCallExpression.getArgumentList()) {
             e.accept(this);
         }

@@ -5,19 +5,16 @@ import executor.ir.Scope;
 import executor.ir.Type;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import semcheck.TypeVisitor;
 import semcheck.exception.SemCheckException;
 
 @AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
-public class AndExpression implements Expression {
-
-    private Expression leftExpression;
-    private Expression rightExpression;
+public class ConstExpression implements Expression {
+    private Type type;
+    private java.lang.Object value;
 
     @Override
     public Type evaluateType(TypeVisitor visitor, Scope scope) throws SemCheckException {

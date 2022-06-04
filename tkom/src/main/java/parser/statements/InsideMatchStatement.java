@@ -12,7 +12,7 @@ import semcheck.exception.SemCheckException;
 @EqualsAndHashCode
 public class InsideMatchStatement implements Statement {
 
-    private final Boolean isDefault;
+    private final boolean isDefault;
     private final Expression expression;
     private final Statement simpleStatement;
 

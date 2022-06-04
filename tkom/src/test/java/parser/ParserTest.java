@@ -987,7 +987,7 @@ class ParserTest {
                         new Operator("==")
                 ), matchSt.getExpression());
                 var insideStatement = (InsideMatchStatement)matchSt.getMatchStatements().get(0);
-                assertEquals(false, insideStatement.getIsDefault());
+                assertFalse(insideStatement.isDefault());
                 assertEquals(new BooleanLiteralExpression(true), insideStatement.getExpression());
                 assertEquals(new FunctionCallExpression("print", List.of(new StringLiteralExpression("test"))), insideStatement.getSimpleStatement());
             }
@@ -1012,12 +1012,12 @@ class ParserTest {
                         new Operator("==")
                 ), matchSt.getExpression());
                 var insideStatement1 = (InsideMatchStatement)matchSt.getMatchStatements().get(0);
-                assertEquals(false, insideStatement1.getIsDefault());
+                assertFalse(insideStatement1.isDefault());
                 assertEquals(new BooleanLiteralExpression(true), insideStatement1.getExpression());
                 assertEquals(new FunctionCallExpression("print", List.of(new StringLiteralExpression("test"))),
                         insideStatement1.getSimpleStatement());
                 var insideStatement2 = (InsideMatchStatement)matchSt.getMatchStatements().get(1);
-                assertEquals(false, insideStatement2.getIsDefault());
+                assertFalse(insideStatement2.isDefault());
                 assertEquals(new BooleanLiteralExpression(false), insideStatement2.getExpression());
                 assertEquals(new FunctionCallExpression("print", List.of(new StringLiteralExpression("test2"))),
                         insideStatement2.getSimpleStatement());
@@ -1043,7 +1043,7 @@ class ParserTest {
                         new Operator("==")
                 ), matchSt.getExpression());
                 var insideStatement = (InsideMatchStatement)matchSt.getMatchStatements().get(0);
-                assertEquals(true, insideStatement.getIsDefault());
+                assertTrue(insideStatement.isDefault());
                 assertNull(insideStatement.getExpression());
                 assertEquals(new FunctionCallExpression("print", List.of(new StringLiteralExpression("test"))), insideStatement.getSimpleStatement());
             }
@@ -1067,7 +1067,7 @@ class ParserTest {
                         new Operator("==")
                 ), matchSt.getExpression());
                 var insideStatement1 = (InsideMatchStatement)matchSt.getMatchStatements().get(0);
-                assertEquals(false, insideStatement1.getIsDefault());
+                assertFalse(insideStatement1.isDefault());
                 assertEquals(new OrExpression(
                         new AndExpression(new BooleanLiteralExpression(true),
                         new Identifier("even")),
@@ -1132,7 +1132,7 @@ class ParserTest {
                 assertTrue(statement instanceof MatchStatement);
                 var matchSt = (MatchStatement)statement;
                 var insideStatement = (InsideMatchStatement)matchSt.getMatchStatements().get(0);
-                assertEquals(false, insideStatement.getIsDefault());
+                assertFalse(insideStatement.isDefault());
                 assertEquals(new BooleanLiteralExpression(true), insideStatement.getExpression());
             }
 
@@ -1150,7 +1150,7 @@ class ParserTest {
                 assertTrue(statement instanceof MatchStatement);
                 var matchSt = (MatchStatement)statement;
                 var insideStatement = (InsideMatchStatement)matchSt.getMatchStatements().get(0);
-                assertEquals(false, insideStatement.getIsDefault());
+                assertFalse(insideStatement.isDefault());
                 assertEquals(new FunctionCallExpression("divisible", List.of(new Identifier("_"), new IntegerLiteralExpression(5))),
                         insideStatement.getExpression());
             }
@@ -1169,7 +1169,7 @@ class ParserTest {
                 assertTrue(statement instanceof MatchStatement);
                 var matchSt = (MatchStatement)statement;
                 var insideStatement = (InsideMatchStatement)matchSt.getMatchStatements().get(0);
-                assertEquals(false, insideStatement.getIsDefault());
+                assertFalse(insideStatement.isDefault());
                 assertEquals(
                         new CompExpression(
                                 new MulExpression(new IntegerLiteralExpression(2), new Identifier("b")),
@@ -1192,7 +1192,7 @@ class ParserTest {
                 assertTrue(statement instanceof MatchStatement);
                 var matchSt = (MatchStatement)statement;
                 var insideStatement = (InsideMatchStatement)matchSt.getMatchStatements().get(0);
-                assertEquals(false, insideStatement.getIsDefault());
+                assertFalse(insideStatement.isDefault());
                 assertEquals(
                         new InsideMatchTypeExpression(null),
                         insideStatement.getExpression());
@@ -1224,7 +1224,7 @@ class ParserTest {
                 assertTrue(statement instanceof MatchStatement);
                 var matchSt = (MatchStatement)statement;
                 var insideStatement = (InsideMatchStatement)matchSt.getMatchStatements().get(0);
-                assertEquals(false, insideStatement.getIsDefault());
+                assertFalse(insideStatement.isDefault());
                 assertEquals(
                         new InsideMatchCompExpression(new IntegerLiteralExpression(3), new Operator(">")),
                         insideStatement.getExpression());

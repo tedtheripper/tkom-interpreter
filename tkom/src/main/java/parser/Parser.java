@@ -13,9 +13,7 @@ import source_loader.exception.SourceException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Parser {
 
@@ -34,21 +32,16 @@ public class Parser {
 
     public Program parse() throws IOException, LexerException, SourceException, SyntaxException {
 
-        Map<String, FunctionDef> functions = new HashMap<>();
         List<Statement> statements = new ArrayList<>();
         Statement statement;
         while((statement = tryParseFunctionDefinition()) != null
                 || (statement = tryParseStatement()) != null) {
-            if (statement instanceof FunctionDef funcDef) {
-                functions.put(funcDef.getName(), funcDef);
-            } else {
-                statements.add(statement);
-            }
+            statements.add(statement);
         }
         if (!checkAndConsume(TokenType.T_ETX)) {
             throwUnexpectedTokenException(TokenType.T_ETX);
         }
-        return new Program(functions, statements);
+        return new Program(statements);
     }
 
     // functionDef = "func", identifier, "(", [parametersList], ")", ":", type, "{", statementBlock, "}" ;

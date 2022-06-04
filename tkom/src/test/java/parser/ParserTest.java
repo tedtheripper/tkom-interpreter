@@ -1677,7 +1677,7 @@ class ParserTest {
 
                 var parser = getParser(code);
                 var program = parser.parse();
-                var function = program.getFunctions().values().stream().toList().get(0);
+                var function = getFunctionDefinitions(program).get(0);
                 var expectedFunctionDef = new FunctionDef(
                         "test",
                         new Type(false, "int"),
@@ -1749,7 +1749,7 @@ class ParserTest {
 
                 var parser = getParser(code);
                 var program = parser.parse();
-                var function = program.getFunctions().values().stream().toList().get(0);
+                var function = getFunctionDefinitions(program).get(0);
                 var expectedFunctionDef = new FunctionDef(
                         "test",
                         new Type(false, "void"),
@@ -1804,7 +1804,7 @@ class ParserTest {
 
                 var parser = getParser(code);
                 var program = parser.parse();
-                var function = program.getFunctions().values().stream().toList().get(0);
+                var function = getFunctionDefinitions(program).get(0);
                 var expectedFunctionDef = new FunctionDef(
                         "test",
                         new Type(false, "void"),
@@ -1877,7 +1877,7 @@ class ParserTest {
             var parser = getParser(code);
             var program = parser.parse();
 
-            var function = program.getFunctions().get("fib");
+            var function = getFunctionDefinitions(program).get(0);
             var expectedFunctionDef = new FunctionDef(
                     "fib",
                     new Type(false, "int"),
@@ -1901,7 +1901,7 @@ class ParserTest {
             );
             assertEquals(expectedFunctionDef, function);
             var statements = program.getStatements();
-            var varDeclaration1 = (VariableDeclarationStatement)statements.get(0);
+            var varDeclaration1 = (VariableDeclarationStatement)statements.get(1);
             var expectedVarDeclaration1 = new VariableDeclarationStatement(
                     true,
                     new Type(false, "int"),
@@ -1910,7 +1910,7 @@ class ParserTest {
             );
             assertEquals(expectedVarDeclaration1, varDeclaration1);
 
-            var varDeclaration2 = (VariableDeclarationStatement)statements.get(1);
+            var varDeclaration2 = (VariableDeclarationStatement)statements.get(2);
             var expectedVarDeclaration2 = new VariableDeclarationStatement(
                     false,
                     new Type(false, "int"),
@@ -1919,7 +1919,7 @@ class ParserTest {
             );
             assertEquals(expectedVarDeclaration2, varDeclaration2);
 
-            var varDeclaration3 = (VariableDeclarationStatement)statements.get(2);
+            var varDeclaration3 = (VariableDeclarationStatement)statements.get(3);
             var expectedVarDeclaration3 = new VariableDeclarationStatement(
                     true,
                     new Type(true, "double"),
@@ -1928,7 +1928,7 @@ class ParserTest {
             );
             assertEquals(expectedVarDeclaration3, varDeclaration3);
 
-            var whileStatement = (WhileStatement)statements.get(3);
+            var whileStatement = (WhileStatement)statements.get(4);
             var expectedWhileStatement = new WhileStatement(
                     new CompExpression(new Identifier("i"), new IntegerLiteralExpression(10), new Operator("<=")),
                     List.of(
@@ -1950,7 +1950,7 @@ class ParserTest {
             );
             assertEquals(expectedWhileStatement, whileStatement);
 
-            var varDeclaration4 = (VariableDeclarationStatement)statements.get(4);
+            var varDeclaration4 = (VariableDeclarationStatement)statements.get(5);
             var expectedVarDeclaration4 = new VariableDeclarationStatement(
                     false,
                     new Type(false, "string"),
@@ -1962,7 +1962,7 @@ class ParserTest {
             );
             assertEquals(expectedVarDeclaration4, varDeclaration4);
 
-            var functionCall = (FunctionCallExpression)statements.get(5);
+            var functionCall = (FunctionCallExpression)statements.get(6);
             var expectedFunctionCall = new FunctionCallExpression(
                     "print",
                     List.of(new Identifier("resMessage"))
@@ -1993,7 +1993,7 @@ class ParserTest {
             var parser = getParser(code);
             var program = parser.parse();
 
-            var function1 = program.getFunctions().get("even");
+            var function1 = getFunctionDefinitions(program).get(0);
             var expectedFunctionDef1 = new FunctionDef(
                     "even",
                     new Type(false, "bool"),
@@ -2011,7 +2011,7 @@ class ParserTest {
             );
             assertEquals(expectedFunctionDef1, function1);
 
-            var function2 = program.getFunctions().get("odd_and_divisible");
+            var function2 = getFunctionDefinitions(program).get(1);
             var expectedFunctionDef2 = new FunctionDef(
                     "odd_and_divisible",
                     new Type(false, "bool"),
@@ -2039,7 +2039,7 @@ class ParserTest {
             );
             assertEquals(expectedFunctionDef2, function2);
 
-            var varDeclaration = (VariableDeclarationStatement)program.getStatements().get(0);
+            var varDeclaration = (VariableDeclarationStatement)program.getStatements().get(2);
             var expectedVarDeclaration = new VariableDeclarationStatement(
                     false,
                     new Type(false, "string"),
@@ -2052,7 +2052,7 @@ class ParserTest {
 
             assertEquals(expectedVarDeclaration, varDeclaration);
 
-            var matchStatement = (MatchStatement)program.getStatements().get(1);
+            var matchStatement = (MatchStatement)program.getStatements().get(3);
             var expectedMatchStatement = new MatchStatement(
                     new IsAsExpression(new Identifier("userInput"), new Type(true, "int"), new Operator("as")),
                     List.of(
@@ -2100,6 +2100,16 @@ class ParserTest {
         var source = new TextSource(code);
         source.load();
         return new Parser(new Tokenizer(source));
+    }
+
+    private List<FunctionDef> getFunctionDefinitions(Program tree) {
+        List<FunctionDef> functions = new ArrayList<>();
+        for(var st : tree.getStatements()) {
+            if (st instanceof FunctionDef) {
+                functions.add((FunctionDef)st);
+            }
+        }
+        return functions;
     }
 
 }

@@ -1,6 +1,7 @@
 package executor.ir.expressions;
 
 import executor.ir.Expression;
+import executor.ir.Type;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,7 +11,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class DivIntExpression implements Expression {
-    private Expression leftExpression;
-    private Expression rightExpression;
+public class InsideMatchTypeExpression implements Expression {
+    private Type type;
 }

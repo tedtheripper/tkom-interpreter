@@ -16,6 +16,7 @@ public class Block {
 
     public Block() {
         instructions = new ArrayList<>();
+        scope = new Scope();
     }
 
     public Block(Scope scope) {

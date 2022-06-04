@@ -14,6 +14,6 @@ public class DoubleLiteralExpression implements Expression {
 
     @Override
     public void accept(Visitor visitor) {
-
+        visitor.visitDoubleLiteralExpression(this);
     }
 }

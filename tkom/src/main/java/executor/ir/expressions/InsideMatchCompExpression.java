@@ -10,7 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class DivIntExpression implements Expression {
-    private Expression leftExpression;
-    private Expression rightExpression;
+public class InsideMatchCompExpression implements Expression {
+    private Expression expression;
+    private String operator;
 }

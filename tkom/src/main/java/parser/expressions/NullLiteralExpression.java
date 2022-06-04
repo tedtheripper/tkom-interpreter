@@ -12,6 +12,6 @@ public class NullLiteralExpression implements Expression {
 
     @Override
     public void accept(Visitor visitor) {
-
+        visitor.visitNullLiteralExpression(this);
     }
 }

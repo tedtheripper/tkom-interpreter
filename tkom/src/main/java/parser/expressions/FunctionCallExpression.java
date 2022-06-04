@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import semcheck.Visitor;
+import semcheck.exception.SemCheckException;
 
 import java.util.List;
 
@@ -16,7 +17,7 @@ public class FunctionCallExpression implements Expression {
     private final List<Expression> argumentList;
 
     @Override
-    public void accept(Visitor visitor) {
-
+    public void accept(Visitor visitor) throws SemCheckException {
+        visitor.visitFunctionCallExpression(this);
     }
 }

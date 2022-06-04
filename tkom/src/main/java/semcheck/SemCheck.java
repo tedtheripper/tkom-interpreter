@@ -214,7 +214,7 @@ public class SemCheck {
             );
         } else if (expression instanceof UnaryExpression unaryExpression) {
             return new executor.ir.expressions.UnaryExpression(
-                    Objects.equals(unaryExpression.getOperator().getValue(), "!"),
+                    unaryExpression.getOperator().getValue(),
                     checkExpression(scope, unaryExpression.getExpression())
             );
         } else if (expression instanceof BaseExpression baseExpression) {

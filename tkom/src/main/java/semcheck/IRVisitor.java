@@ -10,6 +10,7 @@ import parser.Program;
 import parser.Type;
 import parser.expressions.*;
 import parser.statements.*;
+import semcheck.exception.SemCheckException;
 
 import java.util.*;
 
@@ -17,56 +18,57 @@ public class IRVisitor implements Visitor {
 
     private GlobalBlock globalBlock;
     private Function currentFunctionDef;
-    private Map<String, Variable> currentParameterMap;
-    private Stack<IfInstruction> scopedIfInstructions = new Stack<>();
-    private Stack<WhileInstruction> scopedWhileInstructions = new Stack<>();
-    private Stack<Block> scopedBlocks = new Stack<>();
+    private final Stack<IfInstruction> scopedIfInstructions = new Stack<>();
+    private final Stack<WhileInstruction> scopedWhileInstructions = new Stack<>();
+    private final Stack<Block> scopedBlocks = new Stack<>();
     private Variable currentVariable;
-    private Stack<Expression> expressions = new Stack<>();
+    private final Stack<Expression> expressions = new Stack<>();
+    private MatchInstruction currentMatchInstruction;
 
     private boolean expressionAsInstruction = true;
 
     private boolean functionReturnType = false;
     private boolean variableType = false;
     private boolean isAsType = false;
+    private boolean insideMatchType = false;
 
     public IRVisitor() {
         // TODO document why this constructor is empty
     }
 
-    public GlobalBlock export(Program program) {
+    public GlobalBlock export(Program program) throws SemCheckException {
         program.accept(this);
-
         return globalBlock;
     }
 
     @Override
-    public void visitProgram(Program program) {
+    public void visitProgram(Program program) throws SemCheckException {
         globalBlock = new GlobalBlock();
         globalBlock.setGlobalScope(new Scope());
         globalBlock.setFunctions(new HashMap<>());
         scopedBlocks.push(new Block());
-        program.getStatements().forEach(st -> st.accept(this));
+        for (var st : program.getStatements()) {
+            st.accept(this);
+        }
         var block = scopedBlocks.pop();
         globalBlock.setInstructions(block.getInstructions());
         if (!scopedBlocks.isEmpty()) {
-            // TODO: throw new SemCheckException("STACK ERROR");
+            throw new SemCheckException("Invalid stack state");
         }
     }
 
     @Override
-    public void visitFunctionDef(FunctionDef functionDef) {
+    public void visitFunctionDef(FunctionDef functionDef) throws SemCheckException {
         currentFunctionDef = new Function();
         currentFunctionDef.setName(functionDef.getName());
         currentFunctionDef.setScope(new Scope());
-        currentParameterMap = new HashMap<>();
         functionDef.getParameterList().forEach(param -> param.accept(this));
-        currentFunctionDef.getScope().setDeclaredVariables(currentParameterMap);
-        currentParameterMap = null;
         functionReturnType = true;
         functionDef.getFunctionReturnType().accept(this);
         scopedBlocks.push(new Block());
-        functionDef.getStatementsBlock().forEach(st -> st.accept(this));
+        for (var st : functionDef.getStatementsBlock()) {
+            st.accept(this);
+        }
         var block = scopedBlocks.pop();
         currentFunctionDef.setInstructions(block);
         globalBlock.getFunctions().put(currentFunctionDef.getName(), currentFunctionDef);
@@ -74,7 +76,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitIfStatement(IfStatement ifStatement) {
+    public void visitIfStatement(IfStatement ifStatement) throws SemCheckException {
         scopedIfInstructions.push(new IfInstruction());
         ifStatement.getIfBlock().accept(this);
         var elseBlock = ifStatement.getElseBlock();
@@ -86,7 +88,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitIfBlock(IfBlock ifBlock) {
+    public void visitIfBlock(IfBlock ifBlock) throws SemCheckException {
         expressionAsInstruction = false;
         var beforeExpStackSize = expressions.size();
 
@@ -96,36 +98,60 @@ public class IRVisitor implements Visitor {
 
         assert expressions.size() == beforeExpStackSize;
 
-        // TODO: check if anything was added to the stack
         scopedIfInstructions.peek().setCondition(expression);
         scopedBlocks.push(new Block());
 
         var beforeStmtStackSize = expressions.size();
-        ifBlock.getStatements().forEach(st -> st.accept(this));
+        for (var st : ifBlock.getStatements()) {
+            st.accept(this);
+        }
         var block = scopedBlocks.pop();
         if (expressions.size() != beforeStmtStackSize) {
-            // TODO: throw semcheck exception - nadmiarowe expression
+            throw new SemCheckException("Found redundant expression");
         }
         scopedIfInstructions.peek().setTrueBlock(block);
     }
 
     @Override
-    public void visitElseBlock(ElseBlock elseBlock) {
+    public void visitElseBlock(ElseBlock elseBlock) throws SemCheckException {
         scopedBlocks.push(new Block());
-        elseBlock.getStatements().forEach(st -> st.accept(this));
+        var beforeStmtStackSize = expressions.size();
+        for (var st : elseBlock.getStatements()) {
+            st.accept(this);
+        }
         var block = scopedBlocks.pop();
+        if (expressions.size() != beforeStmtStackSize) {
+            throw new SemCheckException("Found redundant expression");
+        }
         scopedIfInstructions.peek().setFalseBlock(block);
     }
 
     @Override
-    public void visitInsideMatchStatement(InsideMatchStatement insideMatchStatement) {
-        // TODO:
-        insideMatchStatement.getExpression().accept(this);
+    public void visitInsideMatchStatement(InsideMatchStatement insideMatchStatement) throws SemCheckException {
+        InsideMatchInstruction currentInsideMatchInstruction = new InsideMatchInstruction();
+        currentInsideMatchInstruction.setDefault(insideMatchStatement.getIsDefault());
+        if (!insideMatchStatement.getIsDefault()) {
+            expressionAsInstruction = false;
+            insideMatchStatement.getExpression().accept(this);
+            expressionAsInstruction = true;
+            var exp = expressions.pop();
+            currentInsideMatchInstruction.setExpression(exp);
+        }
+        scopedBlocks.push(new Block());
         insideMatchStatement.getSimpleStatement().accept(this);
+        var block = scopedBlocks.pop();
+        if (block.getInstructions().size() != 1) {
+            throw new SemCheckException("More than one statement inside match option");
+        }
+        currentInsideMatchInstruction.setInstruction(block.getInstructions().get(0));
+        currentMatchInstruction.getMatchStatements().add(currentInsideMatchInstruction);
     }
 
     @Override
-    public void visitJumpLoopStatement(JumpLoopStatement jumpLoopStatement) {
+    public void visitJumpLoopStatement(JumpLoopStatement jumpLoopStatement) throws SemCheckException {
+        if (scopedWhileInstructions.isEmpty()) {
+            throw new SemCheckException(String.format("Found %s outside of loop", jumpLoopStatement.getValue()));
+        }
         if (jumpLoopStatement.getValue().equals("break")) {
             scopedBlocks.peek().getInstructions().add(new BreakInstruction());
         } else {
@@ -134,15 +160,26 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitMatchStatement(MatchStatement matchStatement) {
+    public void visitMatchStatement(MatchStatement matchStatement) throws SemCheckException {
+        currentMatchInstruction = new MatchInstruction();
+        currentMatchInstruction.setMatchStatements(new ArrayList<>());
         expressionAsInstruction = false;
         matchStatement.getExpression().accept(this);
         expressionAsInstruction = true;
-        matchStatement.getMatchStatements().forEach(st -> st.accept(this));
+        var exp = expressions.pop();
+        currentMatchInstruction.setExpression(exp);
+        for(var st : matchStatement.getMatchStatements()) {
+            st.accept(this);
+        }
+        scopedBlocks.peek().getInstructions().add(currentMatchInstruction);
+        currentMatchInstruction = null;
     }
 
     @Override
-    public void visitReturnStatement(ReturnStatement returnStatement) {
+    public void visitReturnStatement(ReturnStatement returnStatement) throws SemCheckException {
+        if (currentFunctionDef == null) {
+            throw new SemCheckException("Found return outside of function");
+        }
         var returnInstruction = new ReturnInstruction();
         expressionAsInstruction = false;
         returnStatement.getExpression().accept(this);
@@ -153,7 +190,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitVariableDeclarationStatement(VariableDeclarationStatement variableDeclarationStatement) {
+    public void visitVariableDeclarationStatement(VariableDeclarationStatement variableDeclarationStatement) throws SemCheckException {
         currentVariable = new Variable();
         currentVariable.setName(variableDeclarationStatement.getName());
         currentVariable.setMutable(variableDeclarationStatement.isMutable());
@@ -167,12 +204,13 @@ public class IRVisitor implements Visitor {
         var varDeclaration = new VarDeclaration();
         varDeclaration.setVariable(currentVariable);
         varDeclaration.setValue(exp);
-        currentVariable = null;
+        scopedBlocks.peek().getScope().addVariable(currentVariable);
         scopedBlocks.peek().getInstructions().add(varDeclaration);
+        currentVariable = null;
     }
 
     @Override
-    public void visitWhileStatement(WhileStatement whileStatement) {
+    public void visitWhileStatement(WhileStatement whileStatement) throws SemCheckException {
         scopedWhileInstructions.push(new WhileInstruction());
         expressionAsInstruction = false;
         whileStatement.getExpression().accept(this);
@@ -180,7 +218,9 @@ public class IRVisitor implements Visitor {
         expressionAsInstruction = true;
         scopedWhileInstructions.peek().setCondition(exp);
         scopedBlocks.push(new Block());
-        whileStatement.getStatements().forEach(st -> st.accept(this));
+        for (var st : whileStatement.getStatements()) {
+            st.accept(this);
+        }
         var block = scopedBlocks.pop();
         scopedWhileInstructions.peek().setStatements(block);
         var whileInstruction = scopedWhileInstructions.pop();
@@ -188,7 +228,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitAddExpression(AddExpression addExpression) {
+    public void visitAddExpression(AddExpression addExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.AddExpression();
         expressions.push(exp);
         addExpression.getLeftExpression().accept(this);
@@ -202,7 +242,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitAndExpression(AndExpression andExpression) {
+    public void visitAndExpression(AndExpression andExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.AndExpression();
         expressions.push(exp);
         andExpression.getLeftExpression().accept(this);
@@ -216,11 +256,13 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitAssignmentExpression(AssignmentExpression assignmentExpression) {
+    public void visitAssignmentExpression(AssignmentExpression assignmentExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.AssignmentExpression();
         expressions.push(exp);
+        expressionAsInstruction = false;
         assignmentExpression.getLeftExpression().accept(this);
         assignmentExpression.getRightExpression().accept(this);
+        expressionAsInstruction = true;
         var right = expressions.pop();
         var left = expressions.pop();
         if (!(left instanceof executor.ir.expressions.Identifier)) {
@@ -242,7 +284,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitBaseExpression(BaseExpression baseExpression) {
+    public void visitBaseExpression(BaseExpression baseExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.BaseExpression();
         expressions.push(exp);
         baseExpression.getExpression().accept(this);
@@ -259,7 +301,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitCompExpression(CompExpression compExpression) {
+    public void visitCompExpression(CompExpression compExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.CompExpression();
         exp.setOperator(compExpression.getOperator().getValue());
         expressions.push(exp);
@@ -275,7 +317,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitDivExpression(DivExpression divExpression) {
+    public void visitDivExpression(DivExpression divExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.DivExpression();
         expressions.push(exp);
         divExpression.getLeftExpression().accept(this);
@@ -289,9 +331,17 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitDivIntExpression(DivIntExpression divIntExpression) {
+    public void visitDivIntExpression(DivIntExpression divIntExpression) throws SemCheckException {
+        var exp = new executor.ir.expressions.DivIntExpression();
+        expressions.push(exp);
         divIntExpression.getLeftExpression().accept(this);
         divIntExpression.getRightExpression().accept(this);
+        var right = expressions.pop();
+        var left = expressions.pop();
+        exp = (executor.ir.expressions.DivIntExpression) expressions.pop();
+        exp.setLeftExpression(left);
+        exp.setRightExpression(right);
+        expressions.push(exp);
     }
 
     @Override
@@ -301,11 +351,13 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitFunctionCallExpression(FunctionCallExpression functionCallExpression) {
+    public void visitFunctionCallExpression(FunctionCallExpression functionCallExpression) throws SemCheckException {
         var exp = new FunctionCall();
         exp.setName(functionCallExpression.getIdentifier());
         expressions.push(exp);
-        functionCallExpression.getArgumentList().forEach(e -> e.accept(this));
+        for(var e : functionCallExpression.getArgumentList()) {
+            e.accept(this);
+        }
         List<Expression> arguments = new ArrayList<>();
         while(expressions.peek() != exp) {
             arguments.add(expressions.pop());
@@ -331,13 +383,25 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitInsideMatchCompExpression(InsideMatchCompExpression insideMatchCompExpression) {
-        
+    public void visitInsideMatchCompExpression(InsideMatchCompExpression insideMatchCompExpression) throws SemCheckException {
+        var exp = new executor.ir.expressions.InsideMatchCompExpression();
+        exp.setOperator(insideMatchCompExpression.getOperator().getValue());
+        expressions.push(exp);
+        insideMatchCompExpression.getRightExpression().accept(this);
+        var right = expressions.pop();
+        exp = (executor.ir.expressions.InsideMatchCompExpression) expressions.pop();
+        exp.setExpression(right);
+        expressions.push(exp);
     }
 
     @Override
     public void visitInsideMatchTypeExpression(InsideMatchTypeExpression insideMatchTypeExpression) {
-        
+        var exp = new executor.ir.expressions.InsideMatchTypeExpression();
+        expressions.push(exp);
+        insideMatchType = true;
+        insideMatchTypeExpression.getType().accept(this);
+//        exp = (executor.ir.expressions.InsideMatchCompExpression) expressions.pop();
+//        currentMatchInstruction.s
     }
 
     @Override
@@ -347,7 +411,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitIsAsExpression(IsAsExpression isAsExpression) {
+    public void visitIsAsExpression(IsAsExpression isAsExpression) throws SemCheckException {
         if (isAsExpression.getOperator().getValue().equals("is")) {
             var exp = new IsExpression();
             expressions.push(exp);
@@ -372,7 +436,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitModExpression(ModExpression modExpression) {
+    public void visitModExpression(ModExpression modExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.ModExpression();
         expressions.push(exp);
         modExpression.getLeftExpression().accept(this);
@@ -386,13 +450,21 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitMulExpression(MulExpression mulExpression) {
+    public void visitMulExpression(MulExpression mulExpression) throws SemCheckException {
+        var exp = new executor.ir.expressions.MulExpression();
+        expressions.push(exp);
         mulExpression.getLeftExpression().accept(this);
         mulExpression.getRightExpression().accept(this);
+        var right = expressions.pop();
+        var left = expressions.pop();
+        exp = (executor.ir.expressions.MulExpression) expressions.pop();
+        exp.setLeftExpression(left);
+        exp.setRightExpression(right);
+        expressions.push(exp);
     }
 
     @Override
-    public void visitNullCheckExpression(NullCheckExpression nullCheckExpression) {
+    public void visitNullCheckExpression(NullCheckExpression nullCheckExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.NullCheckExpression();
         expressions.push(exp);
         nullCheckExpression.getLeftExpression().accept(this);
@@ -412,7 +484,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitOrExpression(OrExpression orExpression) {
+    public void visitOrExpression(OrExpression orExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.OrExpression();
         expressions.push(exp);
         orExpression.getLeftExpression().accept(this);
@@ -432,7 +504,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitSubExpression(SubExpression subExpression) {
+    public void visitSubExpression(SubExpression subExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.SubExpression();
         expressions.push(exp);
         subExpression.getLeftExpression().accept(this);
@@ -446,7 +518,7 @@ public class IRVisitor implements Visitor {
     }
 
     @Override
-    public void visitUnaryExpression(UnaryExpression unaryExpression) {
+    public void visitUnaryExpression(UnaryExpression unaryExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.UnaryExpression();
         exp.setUnaryOperator(unaryExpression.getOperator().getValue());
         expressions.push(exp);
@@ -475,6 +547,11 @@ public class IRVisitor implements Visitor {
                 expressions.push(asExpression);
             }
             isAsType = false;
+        } else if (insideMatchType) {
+            var exp = (executor.ir.expressions.InsideMatchTypeExpression)expressions.pop();
+            exp.setType(new executor.ir.Type(type));
+            expressions.push(exp);
+            insideMatchType = false;
         }
     }
 

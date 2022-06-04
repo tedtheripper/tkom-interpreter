@@ -17,7 +17,7 @@ public class Program implements SyntaxNode{
     private final List<Statement> statements;
 
     @Override
-    public void accept(Visitor visitor) {
+    public void accept(Visitor visitor) throws SemCheckException {
         visitor.visitProgram(this);
     }
 }

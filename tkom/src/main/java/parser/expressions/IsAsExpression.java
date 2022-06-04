@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import parser.Type;
 import semcheck.Visitor;
+import semcheck.exception.SemCheckException;
 
 @AllArgsConstructor
 @Getter
@@ -16,7 +17,7 @@ public class IsAsExpression implements Expression {
     private final Operator operator;
 
     @Override
-    public void accept(Visitor visitor) {
-
+    public void accept(Visitor visitor) throws SemCheckException {
+        visitor.visitIsAsExpression(this);
     }
 }

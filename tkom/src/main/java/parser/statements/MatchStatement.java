@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import parser.expressions.Expression;
 import semcheck.Visitor;
+import semcheck.exception.SemCheckException;
 
 import java.util.List;
 
@@ -17,7 +18,7 @@ public class MatchStatement implements Statement{
     private final List<Statement> matchStatements;
 
     @Override
-    public void accept(Visitor visitor) {
+    public void accept(Visitor visitor) throws SemCheckException {
         visitor.visitMatchStatement(this);
     }
 }

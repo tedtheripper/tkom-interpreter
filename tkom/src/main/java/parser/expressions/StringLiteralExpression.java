@@ -14,6 +14,6 @@ public class StringLiteralExpression implements Expression{
 
     @Override
     public void accept(Visitor visitor) {
-
+        visitor.visitStringLiteralExpression(this);
     }
 }

@@ -15,6 +15,6 @@ public class InsideMatchTypeExpression implements Expression {
 
     @Override
     public void accept(Visitor visitor) {
-
+        visitor.visitInsideMatchTypeExpression(this);
     }
 }

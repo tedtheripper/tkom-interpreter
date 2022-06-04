@@ -3,6 +3,7 @@ package parser.expressions;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import semcheck.Visitor;
 
 @AllArgsConstructor
 @Getter
@@ -11,4 +12,8 @@ public class StringLiteralExpression implements Expression{
 
     private final String value;
 
+    @Override
+    public void accept(Visitor visitor) {
+
+    }
 }

@@ -1,31 +1,47 @@
 package executor.stdlib;
 
-import parser.statements.FunctionDef;
+import executor.ir.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 
 public class StdLibImpl {
 
-    private final Map<String, FunctionDef> embeddedFunctions = new HashMap<>();
+    private final Map<String, Function> embeddedFunctionsDefinitions = new HashMap<>();
 
     public StdLibImpl() {
-        buildStandardFunctions();
+        buildStandardLibrary();
     }
 
     public boolean hasFunction(String name) {
-        return embeddedFunctions.containsKey(name);
+        return embeddedFunctionsDefinitions.containsKey(name);
     }
 
-    private void buildStandardFunctions() {
-
+    public Function getFunction(String name) {
+        return embeddedFunctionsDefinitions.get(name);
     }
 
-//    private FunctionDef buildPrint() {
-//        return new FunctionDef(
-//                "print"
-//        )
-//    }
+    public Map<String, Function> getEmbeddedFunctionsDefinitions() {
+        return this.embeddedFunctionsDefinitions;
+    }
+
+    public void usePrint(String text) {
+        System.out.println(text);
+    }
+
+    public String useGetInput() {
+        Scanner in = new Scanner(System.in);
+        return in.nextLine();
+    }
+
+    private void buildStandardLibrary() {
+        var printScope = new Scope();
+        printScope.addVariable(new Variable("data", new Type(true, "string"), false));
+        embeddedFunctionsDefinitions.put("print", new LibFunction("print", printScope, new Type(false, "void")));
+        embeddedFunctionsDefinitions.put("get_input", new LibFunction("get_input", new Scope(), new Type(false, "string")));
+
+    }
 
 
 }

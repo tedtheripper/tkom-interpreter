@@ -2,15 +2,29 @@ package semcheck;
 
 import executor.ir.Expression;
 import executor.ir.*;
-import executor.ir.expressions.AsExpression;
-import executor.ir.expressions.ConstExpression;
-import executor.ir.expressions.FunctionCall;
-import executor.ir.expressions.IsExpression;
+import executor.ir.expressions.*;
 import executor.ir.instructions.*;
+import executor.stdlib.StdLibImpl;
 import parser.Parameter;
 import parser.Program;
 import parser.Type;
 import parser.expressions.*;
+import parser.expressions.AddExpression;
+import parser.expressions.AndExpression;
+import parser.expressions.AssignmentExpression;
+import parser.expressions.BaseExpression;
+import parser.expressions.CompExpression;
+import parser.expressions.DivExpression;
+import parser.expressions.DivIntExpression;
+import parser.expressions.Identifier;
+import parser.expressions.InsideMatchCompExpression;
+import parser.expressions.InsideMatchTypeExpression;
+import parser.expressions.ModExpression;
+import parser.expressions.MulExpression;
+import parser.expressions.NullCheckExpression;
+import parser.expressions.OrExpression;
+import parser.expressions.SubExpression;
+import parser.expressions.UnaryExpression;
 import parser.statements.*;
 import semcheck.exception.SemCheckException;
 
@@ -18,13 +32,17 @@ import java.util.*;
 
 public class IRVisitor implements Visitor {
 
-    private GlobalBlock globalBlock;
-    private Function currentFunctionDef;
+    private final TypeEvaluationVisitor typeEvaluationVisitor;
+    private final StdLibImpl stdLib;
+
     private final Stack<IfInstruction> scopedIfInstructions = new Stack<>();
     private final Stack<WhileInstruction> scopedWhileInstructions = new Stack<>();
     private final Stack<Block> scopedBlocks = new Stack<>();
-    private Variable currentVariable;
     private final Stack<Expression> expressions = new Stack<>();
+
+    private GlobalBlock globalBlock;
+    private UserFunction currentUserFunctionDef;
+    private Variable currentVariable;
     private MatchInstruction currentMatchInstruction;
 
     private boolean expressionAsInstruction = true;
@@ -34,8 +52,11 @@ public class IRVisitor implements Visitor {
     private boolean isAsType = false;
     private boolean insideMatchType = false;
 
+    private boolean insideMatchStatementDef = false;
+
     public IRVisitor() {
-        //
+        this.typeEvaluationVisitor = new TypeEvaluationVisitor();
+        this.stdLib = new StdLibImpl();
     }
 
     public GlobalBlock export(Program program) throws SemCheckException {
@@ -48,6 +69,8 @@ public class IRVisitor implements Visitor {
         globalBlock = new GlobalBlock();
         globalBlock.setGlobalScope(new Scope());
         globalBlock.setFunctions(new HashMap<>());
+        globalBlock.getFunctions().putAll(stdLib.getEmbeddedFunctionsDefinitions());
+        globalBlock.getGlobalScope().setDefinedFunctions(stdLib.getEmbeddedFunctionsDefinitions());
         var newBlock = new Block();
         newBlock.getScope().setUpperScope(globalBlock.getGlobalScope());
         scopedBlocks.push(newBlock);
@@ -64,23 +87,28 @@ public class IRVisitor implements Visitor {
 
     @Override
     public void visitFunctionDef(FunctionDef functionDef) throws SemCheckException {
-        currentFunctionDef = new Function();
-        currentFunctionDef.setName(functionDef.getName());
-        currentFunctionDef.setScope(new Scope());
-        currentFunctionDef.getScope().setUpperScope(globalBlock.getGlobalScope());
+        currentUserFunctionDef = new UserFunction();
+        currentUserFunctionDef.setName(functionDef.getName());
+        if (globalBlock.getFunctions().containsKey(currentUserFunctionDef.getName())) {
+            throw new SemCheckException(String.format("Illegal redefinition of function named: %s found", currentUserFunctionDef.getName()));
+        }
+        currentUserFunctionDef.setScope(new Scope(globalBlock.getGlobalScope()));
         functionDef.getParameterList().forEach(param -> param.accept(this));
         functionReturnType = true;
         functionDef.getFunctionReturnType().accept(this);
         var newBlock = new Block();
-        newBlock.getScope().setUpperScope(currentFunctionDef.getScope());
+        newBlock.getScope().setUpperScope(currentUserFunctionDef.getScope());
         scopedBlocks.push(newBlock);
         for (var st : functionDef.getStatementsBlock()) {
             st.accept(this);
         }
         var block = scopedBlocks.pop();
-        currentFunctionDef.setInstructions(block);
-        globalBlock.getFunctions().put(currentFunctionDef.getName(), currentFunctionDef);
-        currentFunctionDef = null;
+        currentUserFunctionDef.setInstructions(block);
+        globalBlock.getFunctions().put(currentUserFunctionDef.getName(), currentUserFunctionDef);
+        if (!globalBlock.getGlobalScope().addFunction(currentUserFunctionDef)) {
+            throw new SemCheckException(String.format("Illegal redefinition of function named: %s found", currentUserFunctionDef.getName()));
+        }
+        currentUserFunctionDef = null;
     }
 
     @Override
@@ -102,6 +130,9 @@ public class IRVisitor implements Visitor {
 
         ifBlock.getExpression().accept(this);
         var expression = expressions.pop();
+        if (!isCorrectType(expression, "bool", scopedBlocks.peek().getScope())) {
+            throw new SemCheckException("Invalid type for if condition");
+        }
         expressionAsInstruction = true;
 
         assert expressions.size() == beforeExpStackSize;
@@ -141,23 +172,33 @@ public class IRVisitor implements Visitor {
     @Override
     public void visitInsideMatchStatement(InsideMatchStatement insideMatchStatement) throws SemCheckException {
         InsideMatchInstruction currentInsideMatchInstruction = new InsideMatchInstruction();
+        var newInsideBlock = new Block();
+        newInsideBlock.getScope().setUpperScope(currentMatchInstruction.getScope());
+        scopedBlocks.push(newInsideBlock);
         currentInsideMatchInstruction.setDefault(insideMatchStatement.isDefault());
         if (!insideMatchStatement.isDefault()) {
             expressionAsInstruction = false;
+            insideMatchStatementDef = true;
             insideMatchStatement.getExpression().accept(this);
             expressionAsInstruction = true;
+            insideMatchStatementDef = false;
             var exp = expressions.pop();
+            if (!isCorrectType(exp, "bool", scopedBlocks.peek().getScope())) {
+                throw new SemCheckException("Invalid type for match condition");
+            }
             currentInsideMatchInstruction.setExpression(exp);
         }
         var newBlock = new Block();
-        newBlock.getScope().setUpperScope(scopedBlocks.peek().getScope());
+        newBlock.getScope().setUpperScope(newInsideBlock.getScope());
         scopedBlocks.push(newBlock);
         insideMatchStatement.getSimpleStatement().accept(this);
-        var block = scopedBlocks.pop();
-        if (block.getInstructions().size() != 1) {
-            throw new SemCheckException("More than one statement inside match option");
+        newBlock = scopedBlocks.pop();
+        if (newBlock.getInstructions().size() != 1) {
+            throw new SemCheckException("Found more/less than one statement inside match option");
         }
-        currentInsideMatchInstruction.setInstruction(block.getInstructions().get(0));
+        currentInsideMatchInstruction.setInstruction(newBlock.getInstructions().get(0));
+        var block = scopedBlocks.pop();
+        currentInsideMatchInstruction.setScope(block.getScope());
         currentMatchInstruction.getMatchStatements().add(currentInsideMatchInstruction);
     }
 
@@ -176,15 +217,16 @@ public class IRVisitor implements Visitor {
     @Override
     public void visitMatchStatement(MatchStatement matchStatement) throws SemCheckException {
         currentMatchInstruction = new MatchInstruction();
-        currentMatchInstruction.setScope(new Scope(scopedBlocks.peek().getScope().getUpperScope()));
+        currentMatchInstruction.setScope(new Scope(scopedBlocks.peek().getScope()));
         currentMatchInstruction.setMatchStatements(new ArrayList<>());
         expressionAsInstruction = false;
         matchStatement.getExpression().accept(this);
         expressionAsInstruction = true;
         var exp = expressions.pop();
+
         currentMatchInstruction.setExpression(exp);
         currentMatchInstruction.getScope().addVariable(
-                new Variable("_", null, false, exp)
+                new Variable("_", exp.evaluateType(this.typeEvaluationVisitor, scopedBlocks.peek().getScope()), false, exp)
         );
         for(var st : matchStatement.getMatchStatements()) {
             st.accept(this);
@@ -195,7 +237,7 @@ public class IRVisitor implements Visitor {
 
     @Override
     public void visitReturnStatement(ReturnStatement returnStatement) throws SemCheckException {
-        if (currentFunctionDef == null) {
+        if (currentUserFunctionDef == null) {
             throw new SemCheckException("Found return outside of function");
         }
         var returnInstruction = new ReturnInstruction();
@@ -221,11 +263,17 @@ public class IRVisitor implements Visitor {
         variableDeclarationStatement.getExpression().accept(this);
         expressionAsInstruction = true;
         var exp = expressions.pop();
+
+        if (!isCorrectType(exp, currentVariable.getType().getTypeName(), scopedBlocks.peek().getScope())) {
+            throw new SemCheckException(String.format("Wrong right side type in declaration of to %s variable", currentVariable.getName()));
+        }
         currentVariable.setValue(exp);
         var varDeclaration = new VarDeclaration();
         varDeclaration.setVariable(currentVariable);
         varDeclaration.setValue(exp);
-        scopedBlocks.peek().getScope().addVariable(currentVariable);
+        if(!scopedBlocks.peek().getScope().addVariable(currentVariable)) {
+            throw new SemCheckException(String.format("Variable with name: %s is already defined in this scope", varDeclaration.getVariable().getName()));
+        }
         scopedBlocks.peek().getInstructions().add(varDeclaration);
         currentVariable = null;
     }
@@ -236,6 +284,10 @@ public class IRVisitor implements Visitor {
         expressionAsInstruction = false;
         whileStatement.getExpression().accept(this);
         var exp = expressions.pop();
+
+        if (!isCorrectType(exp, "bool", scopedBlocks.peek().getScope())) {
+            throw new SemCheckException("Invalid type for while condition");
+        }
         expressionAsInstruction = true;
         scopedWhileInstructions.peek().setCondition(exp);
         var newBlock = new Block();
@@ -261,6 +313,8 @@ public class IRVisitor implements Visitor {
         exp = (executor.ir.expressions.AddExpression) expressions.pop();
         exp.setLeftExpression(left);
         exp.setRightExpression(right);
+        exp.evaluateType(this.typeEvaluationVisitor, scopedBlocks.peek().getScope());
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -275,6 +329,8 @@ public class IRVisitor implements Visitor {
         exp = (executor.ir.expressions.AndExpression) expressions.pop();
         exp.setLeftExpression(left);
         exp.setRightExpression(right);
+        exp.evaluateType(this.typeEvaluationVisitor, scopedBlocks.peek().getScope());
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -282,10 +338,11 @@ public class IRVisitor implements Visitor {
     public void visitAssignmentExpression(AssignmentExpression assignmentExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.AssignmentExpression();
         expressions.push(exp);
+        var prevExpressionAsInstructionState = expressionAsInstruction;
         expressionAsInstruction = false;
         assignmentExpression.getLeftExpression().accept(this);
         assignmentExpression.getRightExpression().accept(this);
-        expressionAsInstruction = true;
+        expressionAsInstruction = prevExpressionAsInstructionState;
         var right = expressions.pop();
         var left = expressions.pop();
         if (!(left instanceof executor.ir.expressions.Identifier)) {
@@ -304,7 +361,9 @@ public class IRVisitor implements Visitor {
             if (!variable.isMutable()) {
                 throw new SemCheckException("Tried changing value of constant variable");
             }
+            scopedBlocks.peek().getScope().addVariable(variable);
         }
+        exp.evaluateType(this.typeEvaluationVisitor, scopedBlocks.peek().getScope());
 
         if (expressionAsInstruction) {
             var instructionExpression = new InstructionExpression();
@@ -323,12 +382,15 @@ public class IRVisitor implements Visitor {
         var deeperExpression = expressions.pop();
         exp = (executor.ir.expressions.BaseExpression)expressions.pop();
         exp.setExpression(deeperExpression);
+        exp.evaluateType(this.typeEvaluationVisitor, scopedBlocks.peek().getScope());
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
     @Override
-    public void visitBooleanLiteralExpression(BooleanLiteralExpression booleanLiteralExpression) {
+    public void visitBooleanLiteralExpression(BooleanLiteralExpression booleanLiteralExpression) throws SemCheckException {
         var exp = new ConstExpression(new executor.ir.Type(false, "bool"), booleanLiteralExpression.getValue());
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -344,6 +406,7 @@ public class IRVisitor implements Visitor {
         exp = (executor.ir.expressions.CompExpression) expressions.pop();
         exp.setLeftExpression(left);
         exp.setRightExpression(right);
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
 
     }
@@ -359,6 +422,7 @@ public class IRVisitor implements Visitor {
         exp = (executor.ir.expressions.DivExpression) expressions.pop();
         exp.setLeftExpression(left);
         exp.setRightExpression(right);
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -373,24 +437,34 @@ public class IRVisitor implements Visitor {
         exp = (executor.ir.expressions.DivIntExpression) expressions.pop();
         exp.setLeftExpression(left);
         exp.setRightExpression(right);
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
     @Override
-    public void visitDoubleLiteralExpression(DoubleLiteralExpression doubleLiteralExpression) {
+    public void visitDoubleLiteralExpression(DoubleLiteralExpression doubleLiteralExpression) throws SemCheckException {
         var exp = new ConstExpression(new executor.ir.Type(false, "double"), doubleLiteralExpression.getValue());
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
     @Override
     public void visitFunctionCallExpression(FunctionCallExpression functionCallExpression) throws SemCheckException {
+        var name = functionCallExpression.getIdentifier();
+        if (stdLib.hasFunction(name)) {
+            buildLibFunctionCall(functionCallExpression);
+            return;
+        }
+
         var exp = new FunctionCall();
         exp.setName(functionCallExpression.getIdentifier());
         expressions.push(exp);
+        var prevExpressionAsInstructionState = expressionAsInstruction;
         expressionAsInstruction = false;
         for(var e : functionCallExpression.getArgumentList()) {
             e.accept(this);
         }
+        expressionAsInstruction = prevExpressionAsInstructionState;
         List<Expression> arguments = new ArrayList<>();
         while(expressions.peek() != exp) {
             arguments.add(expressions.pop());
@@ -409,9 +483,43 @@ public class IRVisitor implements Visitor {
         }
     }
 
+    private void buildLibFunctionCall(FunctionCallExpression functionCallExpression) throws SemCheckException {
+        var exp = new LibFunctionCall();
+        exp.setName(functionCallExpression.getIdentifier());
+        expressions.push(exp);
+        var prevExpressionAsInstructionState = expressionAsInstruction;
+        expressionAsInstruction = false;
+        for(var e : functionCallExpression.getArgumentList()) {
+            e.accept(this);
+        }
+        expressionAsInstruction = prevExpressionAsInstructionState;
+        List<Expression> arguments = new ArrayList<>();
+        while(expressions.peek() != exp) {
+            arguments.add(expressions.pop());
+        }
+        Collections.reverse(arguments);
+        exp = (LibFunctionCall) expressions.pop();
+        exp.setArguments(arguments);
+
+
+        if (expressionAsInstruction) {
+            var instructionExpression = new InstructionExpression();
+            instructionExpression.setExpression(exp);
+            scopedBlocks.peek().getInstructions().add(instructionExpression);
+        } else {
+            expressions.push(exp);
+        }
+    }
+
     @Override
-    public void visitIdentifier(Identifier identifier) {
+    public void visitIdentifier(Identifier identifier) throws SemCheckException {
+        if (insideMatchStatementDef && globalBlock.getFunctions().containsKey(identifier.getName())) {
+            var exp = new FunctionCall(identifier.getName(), List.of(new executor.ir.expressions.Identifier("_")));
+            expressions.push(exp);
+            return;
+        }
         var exp = new executor.ir.expressions.Identifier(identifier.getName());
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -424,22 +532,23 @@ public class IRVisitor implements Visitor {
         var right = expressions.pop();
         exp = (executor.ir.expressions.InsideMatchCompExpression) expressions.pop();
         exp.setExpression(right);
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
     @Override
-    public void visitInsideMatchTypeExpression(InsideMatchTypeExpression insideMatchTypeExpression) {
+    public void visitInsideMatchTypeExpression(InsideMatchTypeExpression insideMatchTypeExpression) throws SemCheckException {
         var exp = new executor.ir.expressions.InsideMatchTypeExpression();
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
         insideMatchType = true;
         insideMatchTypeExpression.getType().accept(this);
-//        exp = (executor.ir.expressions.InsideMatchCompExpression) expressions.pop();
-//        currentMatchInstruction.s
     }
 
     @Override
-    public void visitIntegerLiteralExpression(IntegerLiteralExpression integerLiteralExpression) {
+    public void visitIntegerLiteralExpression(IntegerLiteralExpression integerLiteralExpression) throws SemCheckException {
         var exp = new ConstExpression(new executor.ir.Type(false, "int"), integerLiteralExpression.getValue());
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -451,9 +560,12 @@ public class IRVisitor implements Visitor {
             isAsExpression.getLeftExpression().accept(this);
             var deeperExp = expressions.pop();
             isAsType = true;
-            isAsExpression.getType().accept(this);
+            if (isAsExpression.getType() != null) {
+                isAsExpression.getType().accept(this);
+            }
             exp = (IsExpression) expressions.pop();
             exp.setExpression(deeperExp);
+            throwOnInvalidExpressionUse();
             expressions.push(exp);
         } else {
             var exp = new AsExpression();
@@ -464,6 +576,7 @@ public class IRVisitor implements Visitor {
             isAsExpression.getType().accept(this);
             exp = (AsExpression) expressions.pop();
             exp.setExpression(deeperExp);
+            throwOnInvalidExpressionUse();
             expressions.push(exp);
         }
     }
@@ -479,6 +592,7 @@ public class IRVisitor implements Visitor {
         exp = (executor.ir.expressions.ModExpression) expressions.pop();
         exp.setLeftExpression(left);
         exp.setRightExpression(right);
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -493,6 +607,7 @@ public class IRVisitor implements Visitor {
         exp = (executor.ir.expressions.MulExpression) expressions.pop();
         exp.setLeftExpression(left);
         exp.setRightExpression(right);
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -507,12 +622,14 @@ public class IRVisitor implements Visitor {
         exp = (executor.ir.expressions.NullCheckExpression) expressions.pop();
         exp.setLeftExpression(left);
         exp.setRightExpression(right);
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
     @Override
-    public void visitNullLiteralExpression(NullLiteralExpression nullLiteralExpression) {
+    public void visitNullLiteralExpression(NullLiteralExpression nullLiteralExpression) throws SemCheckException {
         var exp = new ConstExpression(null, null);
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -527,12 +644,14 @@ public class IRVisitor implements Visitor {
         exp = (executor.ir.expressions.OrExpression) expressions.pop();
         exp.setLeftExpression(left);
         exp.setRightExpression(right);
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
     @Override
-    public void visitStringLiteralExpression(StringLiteralExpression stringLiteralExpression) {
+    public void visitStringLiteralExpression(StringLiteralExpression stringLiteralExpression) throws SemCheckException {
         var exp = new ConstExpression(new executor.ir.Type(false, "string"), stringLiteralExpression.getValue());
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -547,6 +666,7 @@ public class IRVisitor implements Visitor {
         exp = (executor.ir.expressions.SubExpression) expressions.pop();
         exp.setLeftExpression(left);
         exp.setRightExpression(right);
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
@@ -559,13 +679,15 @@ public class IRVisitor implements Visitor {
         var deeperExp = expressions.pop();
         exp = (executor.ir.expressions.UnaryExpression) expressions.pop();
         exp.setExpression(deeperExp);
+        exp.evaluateType(this.typeEvaluationVisitor, scopedBlocks.peek().getScope());
+        throwOnInvalidExpressionUse();
         expressions.push(exp);
     }
 
     @Override
     public void visitType(Type type) {
         if (functionReturnType) {
-            currentFunctionDef.setReturnType(new executor.ir.Type(type));
+            currentUserFunctionDef.setReturnType(new executor.ir.Type(type));
             functionReturnType = false;
         } else if (variableType) {
             currentVariable.setType(new executor.ir.Type(type));
@@ -573,7 +695,7 @@ public class IRVisitor implements Visitor {
         } else if (isAsType) {
             var exp = expressions.pop();
             if (exp instanceof IsExpression isExpression) {
-                isExpression.setType(new executor.ir.Type(type));
+                isExpression.setType(type == null ? null : new executor.ir.Type(type));
                 expressions.push(isExpression);
             } else if (exp instanceof AsExpression asExpression) {
                 asExpression.setType(new executor.ir.Type(type));
@@ -595,7 +717,29 @@ public class IRVisitor implements Visitor {
         currentVariable.setName(parameter.getIdentifier());
         variableType = true;
         parameter.getType().accept(this);
-        currentFunctionDef.getScope().addVariable(currentVariable);
+        currentUserFunctionDef.getScope().addVariable(currentVariable);
         currentVariable = null;
     }
+
+    private boolean isCorrectType(Expression exp, String expectedTypeName, Scope scope) throws SemCheckException {
+        var expType = exp.evaluateType(this.typeEvaluationVisitor, scope);
+        if (expType == null) return false;
+        return expType.getTypeName().equals(expectedTypeName);
+    }
+
+    private boolean isCorrectType(Expression exp, List<String> expectedTypeNames, Scope scope) throws SemCheckException {
+        for (var name : expectedTypeNames) {
+            if (!isCorrectType(exp, name, scope)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void throwOnInvalidExpressionUse() throws SemCheckException {
+        if (expressionAsInstruction) {
+            throw new SemCheckException("Illegal expression as statement");
+        }
+    }
+
 }

@@ -14,7 +14,7 @@ import java.util.*;
 public class SemCheck {
 
     private final Program syntaxTree;
-    private Map<String, Function> definedFunctions = new HashMap<>();
+    private Map<String, UserFunction> definedFunctions = new HashMap<>();
     private Map<String, Variable> declaredVariables = new HashMap<>();
 
     public SemCheck(Program syntaxTree) {
@@ -39,7 +39,7 @@ public class SemCheck {
             if (definedFunctions.containsKey(functionNode.getName())) {
                 throw new SemCheckException(String.format("Function: %s duplicate found", functionNode.getName()));
             }
-            var function = new Function();
+            var function = new UserFunction();
             function.setName(functionNode.getName());
             function.setReturnType(new Type(functionNode.getFunctionReturnType()));
             function.setScope(new Scope());
@@ -70,7 +70,7 @@ public class SemCheck {
     }
 
     private GlobalBlock traverseTree() throws SemCheckException {
-        Map<String, Function> functions = new HashMap<>();
+        Map<String, UserFunction> functions = new HashMap<>();
         var globalScope = new Scope();
         globalScope.setDeclaredVariables(new HashMap<>(declaredVariables));
 
@@ -86,11 +86,11 @@ public class SemCheck {
                 .toList();
 
         var block = checkBlock(globalScope, instructionNodes);
-        return new GlobalBlock(globalScope, functions, block.getInstructions());
+        return new GlobalBlock();
     }
 
 
-    private Function checkFunction(Scope scope, FunctionDef functionDef) throws SemCheckException {
+    private UserFunction checkFunction(Scope scope, FunctionDef functionDef) throws SemCheckException {
         var function = definedFunctions.get(functionDef.getName());
         function.getScope().setUpperScope(scope);
         function.setInstructions(checkBlock(scope, functionDef.getStatementsBlock()));

@@ -1677,14 +1677,14 @@ class ParserTest {
 
                 var parser = getParser(code);
                 var program = parser.parse();
-                var function = getFunctionDefinitions(program).get(0);
+                var userFunction = getFunctionDefinitions(program).get(0);
                 var expectedFunctionDef = new FunctionDef(
                         "test",
                         new Type(false, "int"),
                         List.of(new Parameter(false, new Type(true, "int"), "a")),
                         List.of(new ReturnStatement(new NullCheckExpression(new Identifier("a"), new IntegerLiteralExpression(0))))
                 );
-                assertEquals(expectedFunctionDef, function);
+                assertEquals(expectedFunctionDef, userFunction);
             }
 
             @ParameterizedTest
@@ -1749,7 +1749,7 @@ class ParserTest {
 
                 var parser = getParser(code);
                 var program = parser.parse();
-                var function = getFunctionDefinitions(program).get(0);
+                var userFunction = getFunctionDefinitions(program).get(0);
                 var expectedFunctionDef = new FunctionDef(
                         "test",
                         new Type(false, "void"),
@@ -1762,7 +1762,7 @@ class ParserTest {
                                 "c",
                                 new NullCheckExpression(new Identifier("a"), new IntegerLiteralExpression(0))))
                 );
-                assertEquals(expectedFunctionDef, function);
+                assertEquals(expectedFunctionDef, userFunction);
             }
 
             @Test
@@ -1804,7 +1804,7 @@ class ParserTest {
 
                 var parser = getParser(code);
                 var program = parser.parse();
-                var function = getFunctionDefinitions(program).get(0);
+                var userFunction = getFunctionDefinitions(program).get(0);
                 var expectedFunctionDef = new FunctionDef(
                         "test",
                         new Type(false, "void"),
@@ -1817,7 +1817,7 @@ class ParserTest {
                                 "c",
                                 new NullCheckExpression(new Identifier("a"), new IntegerLiteralExpression(0))))
                 );
-                assertEquals(expectedFunctionDef, function);
+                assertEquals(expectedFunctionDef, userFunction);
             }
 
             @Test
@@ -1854,7 +1854,7 @@ class ParserTest {
         @Test
         void shouldCorrectlyReadAllTokensSample1() throws Exception{
             String code = """
-                    # function calculates Nth fibonacci number
+                    # userFunction calculates Nth fibonacci number
                     func fib(int n) : int {
                         if (n <= 1) {
                             return n;
@@ -1877,7 +1877,7 @@ class ParserTest {
             var parser = getParser(code);
             var program = parser.parse();
 
-            var function = getFunctionDefinitions(program).get(0);
+            var userFunction = getFunctionDefinitions(program).get(0);
             var expectedFunctionDef = new FunctionDef(
                     "fib",
                     new Type(false, "int"),
@@ -1899,7 +1899,7 @@ class ParserTest {
 
                     )
             );
-            assertEquals(expectedFunctionDef, function);
+            assertEquals(expectedFunctionDef, userFunction);
             var statements = program.getStatements();
             var varDeclaration1 = (VariableDeclarationStatement)statements.get(1);
             var expectedVarDeclaration1 = new VariableDeclarationStatement(

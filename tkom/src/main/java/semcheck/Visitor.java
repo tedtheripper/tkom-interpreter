@@ -39,7 +39,7 @@ public interface Visitor {
 
     void visitBaseExpression(BaseExpression baseExpression) throws SemCheckException;
 
-    void visitBooleanLiteralExpression(BooleanLiteralExpression booleanLiteralExpression);
+    void visitBooleanLiteralExpression(BooleanLiteralExpression booleanLiteralExpression) throws SemCheckException;
 
     void visitCompExpression(CompExpression compExpression) throws SemCheckException;
 
@@ -47,17 +47,17 @@ public interface Visitor {
 
     void visitDivIntExpression(DivIntExpression divIntExpression) throws SemCheckException;
 
-    void visitDoubleLiteralExpression(DoubleLiteralExpression doubleLiteralExpression);
+    void visitDoubleLiteralExpression(DoubleLiteralExpression doubleLiteralExpression) throws SemCheckException;
 
     void visitFunctionCallExpression(FunctionCallExpression functionCallExpression) throws SemCheckException;
 
-    void visitIdentifier(Identifier identifier);
+    void visitIdentifier(Identifier identifier) throws SemCheckException;
 
     void visitInsideMatchCompExpression(InsideMatchCompExpression insideMatchCompExpression) throws SemCheckException;
 
-    void visitInsideMatchTypeExpression(InsideMatchTypeExpression insideMatchTypeExpression);
+    void visitInsideMatchTypeExpression(InsideMatchTypeExpression insideMatchTypeExpression) throws SemCheckException;
 
-    void visitIntegerLiteralExpression(IntegerLiteralExpression integerLiteralExpression);
+    void visitIntegerLiteralExpression(IntegerLiteralExpression integerLiteralExpression) throws SemCheckException;
 
     void visitIsAsExpression(IsAsExpression isAsExpression) throws SemCheckException;
 
@@ -67,11 +67,11 @@ public interface Visitor {
 
     void visitNullCheckExpression(NullCheckExpression nullCheckExpression) throws SemCheckException;
 
-    void visitNullLiteralExpression(NullLiteralExpression nullLiteralExpression);
+    void visitNullLiteralExpression(NullLiteralExpression nullLiteralExpression) throws SemCheckException;
 
     void visitOrExpression(OrExpression orExpression) throws SemCheckException;
 
-    void visitStringLiteralExpression(StringLiteralExpression stringLiteralExpression);
+    void visitStringLiteralExpression(StringLiteralExpression stringLiteralExpression) throws SemCheckException;
 
     void visitSubExpression(SubExpression subExpression) throws SemCheckException;
 

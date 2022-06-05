@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import parser.Type;
 import semcheck.Visitor;
+import semcheck.exception.SemCheckException;
 
 @AllArgsConstructor
 @Getter
@@ -14,7 +15,7 @@ public class InsideMatchTypeExpression implements Expression {
     private final Type type;
 
     @Override
-    public void accept(Visitor visitor) {
+    public void accept(Visitor visitor) throws SemCheckException {
         visitor.visitInsideMatchTypeExpression(this);
     }
 }

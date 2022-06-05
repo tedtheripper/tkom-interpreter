@@ -23,7 +23,7 @@ public class Block {
         this.scope = scope;
     }
 
-    public void execute(Scope scope, Map<String, Function> definedFunctions) {
+    public void execute(Scope scope, Map<String, UserFunction> definedFunctions) {
 
     }
 }

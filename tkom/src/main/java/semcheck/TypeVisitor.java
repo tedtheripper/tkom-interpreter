@@ -25,7 +25,7 @@ public interface TypeVisitor {
 
     Type visit(Identifier identifier, Scope scope);
 
-    Type visit(InsideMatchCompExpression insideMatchCompExpression, Scope scope);
+    Type visit(InsideMatchCompExpression insideMatchCompExpression, Scope scope) throws SemCheckException;
 
     Type visit(InsideMatchTypeExpression insideMatchTypeExpression, Scope scope);
 
@@ -33,13 +33,13 @@ public interface TypeVisitor {
 
     Type visit(ModExpression modExpression, Scope scope) throws SemCheckException;
 
-    Type visit(MulExpression mulExpression, Scope scope);
+    Type visit(MulExpression mulExpression, Scope scope) throws SemCheckException;
 
-    Type visit(NullCheckExpression nullCheckExpression, Scope scope);
+    Type visit(NullCheckExpression nullCheckExpression, Scope scope) throws SemCheckException;
 
-    Type visit(OrExpression orExpression, Scope scope);
+    Type visit(OrExpression orExpression, Scope scope) throws SemCheckException;
 
-    Type visit(SubExpression subExpression, Scope scope);
+    Type visit(SubExpression subExpression, Scope scope) throws SemCheckException;
 
     Type visit(UnaryExpression unaryExpression, Scope scope) throws SemCheckException;
 
@@ -47,5 +47,6 @@ public interface TypeVisitor {
 
     Type visit(FunctionCall functionCall, Scope scope) throws SemCheckException;
 
+    Type visit(LibFunctionCall libFunctionCall, Scope scope) throws SemCheckException;
 }
 

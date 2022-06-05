@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import semcheck.Visitor;
+import semcheck.exception.SemCheckException;
 
 @AllArgsConstructor
 @Getter
@@ -13,7 +14,7 @@ public class DoubleLiteralExpression implements Expression {
     private final Double value;
 
     @Override
-    public void accept(Visitor visitor) {
+    public void accept(Visitor visitor) throws SemCheckException {
         visitor.visitDoubleLiteralExpression(this);
     }
 }

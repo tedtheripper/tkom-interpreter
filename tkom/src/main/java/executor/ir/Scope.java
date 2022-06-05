@@ -71,4 +71,12 @@ public class Scope {
         return null;
     }
 
+    public boolean addFunction(UserFunction userFunction) {
+        if (definedFunctions.containsKey(userFunction.getName())) {
+            return false;
+        }
+        definedFunctions.put(userFunction.getName(), userFunction);
+        return true;
+    }
+
 }

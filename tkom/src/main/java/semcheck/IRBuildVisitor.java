@@ -54,7 +54,6 @@ public class IRBuildVisitor implements BuildVisitor {
 
     private boolean insideMatchStatementDef = false;
 
-    private boolean allBranchesReturnCoverage = true;
 
     public IRBuildVisitor() {
         this.typeEvaluationVisitor = new TypeEvaluationVisitor();
@@ -380,14 +379,12 @@ public class IRBuildVisitor implements BuildVisitor {
         expressionAsInstruction = prevExpressionAsInstructionState;
         var right = expressions.pop();
         var left = expressions.pop();
-        if (!(left instanceof executor.ir.expressions.Identifier)) {
+        if (!(left instanceof executor.ir.expressions.Identifier id)) {
             throw new SemCheckException("Tried to assign value to non-identifier");
         }
         exp = (executor.ir.expressions.AssignmentExpression) expressions.pop();
-        if (left instanceof executor.ir.expressions.Identifier id) {
-            exp.setVariableName(id.getName());
-            exp.setRightSide(right);
-        }
+        exp.setVariableName(id.getName());
+        exp.setRightSide(right);
 
         if (!scopedBlocks.peek().getScope().hasVariable(exp.getVariableName())) {
             throw new SemCheckException(String.format("Variable %s has not been declared", exp.getVariableName()));
@@ -772,15 +769,6 @@ public class IRBuildVisitor implements BuildVisitor {
         if (type.getTypeName() == null) throw new SemCheckException("Invalid type");
         if (expType == null) return type.isNullable();
         return expType.getTypeName().equals(type.getTypeName());
-    }
-
-    private boolean isCorrectType(Expression exp, List<String> expectedTypeNames, Scope scope) throws SemCheckException {
-        for (var name : expectedTypeNames) {
-            if (!isCorrectType(exp, name, scope)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private void throwOnInvalidExpressionUse() throws SemCheckException {

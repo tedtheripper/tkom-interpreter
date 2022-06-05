@@ -6,15 +6,13 @@ import executor.ir.Expression;
 import executor.ir.Instruction;
 import executor.ir.Scope;
 import executor.ir.Variable;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
+@EqualsAndHashCode
 public class VarDeclaration implements Instruction {
 
     private Variable variable;

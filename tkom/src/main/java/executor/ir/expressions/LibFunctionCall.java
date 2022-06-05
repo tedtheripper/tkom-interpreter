@@ -5,10 +5,7 @@ import executor.exceptions.RuntimeException;
 import executor.ir.Expression;
 import executor.ir.Scope;
 import executor.ir.Type;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import semcheck.TypeVisitor;
 import semcheck.exception.SemCheckException;
 
@@ -18,6 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @Getter
 @Setter
+@EqualsAndHashCode
 public class LibFunctionCall implements Expression {
 
     private String name;

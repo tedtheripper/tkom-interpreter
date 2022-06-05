@@ -19,10 +19,10 @@ public class Interpreter implements Executor {
 
     private static final int MAX_STACK_SIZE = 16;
 
-    // FLAGS
     private boolean continueDetected = false;
     private boolean breakDetected = false;
     private boolean returnDetected = false;
+    private boolean matchFinished = false;
 
     private final StdLibImpl stdLib;
     private final GlobalBlock global;
@@ -44,6 +44,10 @@ public class Interpreter implements Executor {
             Arrays.stream(stackTrace).forEach(System.out::println);
             System.out.println(e.getMessage());
         }
+    }
+
+    public void runNoisy() throws RuntimeException {
+        global.execute(this, global.getGlobalScope());
     }
 
     @Override
@@ -86,14 +90,14 @@ public class Interpreter implements Executor {
     @Override
     public void execute(AndExpression andExpression, Scope scope) throws RuntimeException {
         andExpression.getLeftExpression().execute(this, scope);
-        andExpression.getRightExpression().execute(this, scope);
-        var rightValue = ((BooleanObject)objects.pop()).isValue();
         var leftValue = ((BooleanObject)objects.pop()).isValue();
         if (!leftValue) {
             objects.push(new BooleanObject(false));
-        } else {
-            objects.push(new BooleanObject(rightValue));
+            return;
         }
+        andExpression.getRightExpression().execute(this, scope);
+        var rightValue = ((BooleanObject)objects.pop()).isValue();
+        objects.push(new BooleanObject(rightValue));
     }
 
     @Override
@@ -432,6 +436,7 @@ public class Interpreter implements Executor {
         var obj = (BooleanObject)objects.pop();
         if (obj.isValue()) {
             insideMatchInstruction.getInstruction().execute(this, insideMatchInstruction.getScope());
+            matchFinished = true;
         }
     }
 
@@ -444,13 +449,14 @@ public class Interpreter implements Executor {
     @Override
     public void execute(MatchInstruction matchInstruction, Scope scope) throws RuntimeException {
         matchInstruction.getExpression().execute(this, scope);
+        matchFinished = false;
         var obj = objects.pop();
         var matchScope = matchInstruction.getScope();
         matchScope.setUpperScope(scope);
         matchScope.getVariable("_").setObject(obj);
         for(var instruction : matchInstruction.getMatchStatements()) {
             instruction.execute(this, matchScope);
-            if (returnDetected) {
+            if (returnDetected || matchFinished) {
                 break;
             }
         }

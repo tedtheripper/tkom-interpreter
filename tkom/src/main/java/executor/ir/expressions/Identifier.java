@@ -6,6 +6,7 @@ import executor.ir.Expression;
 import executor.ir.Scope;
 import executor.ir.Type;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import semcheck.TypeVisitor;
@@ -14,6 +15,7 @@ import semcheck.exception.SemCheckException;
 @AllArgsConstructor
 @Setter
 @Getter
+@EqualsAndHashCode
 public class Identifier implements Expression {
     private String name;
 

@@ -6,15 +6,13 @@ import executor.exceptions.RuntimeException;
 import executor.ir.Expression;
 import executor.ir.Instruction;
 import executor.ir.Scope;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
+@EqualsAndHashCode
 public class ReturnInstruction implements Instruction {
 
     private Expression value;

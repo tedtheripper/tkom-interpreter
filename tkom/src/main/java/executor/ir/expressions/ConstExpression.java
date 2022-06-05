@@ -6,6 +6,7 @@ import executor.ir.Expression;
 import executor.ir.Scope;
 import executor.ir.Type;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import semcheck.TypeVisitor;
@@ -14,6 +15,7 @@ import semcheck.exception.SemCheckException;
 @AllArgsConstructor
 @Getter
 @Setter
+@EqualsAndHashCode
 public class ConstExpression implements Expression {
     private Type type;
     private java.lang.Object value;

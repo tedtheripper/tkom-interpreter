@@ -5,10 +5,7 @@ import executor.exceptions.RuntimeException;
 import executor.ir.Expression;
 import executor.ir.Scope;
 import executor.ir.Type;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import semcheck.TypeVisitor;
 import semcheck.exception.SemCheckException;
 
@@ -16,6 +13,7 @@ import semcheck.exception.SemCheckException;
 @NoArgsConstructor
 @Setter
 @Getter
+@EqualsAndHashCode
 public class AddExpression implements Expression {
 
     private Expression leftExpression;

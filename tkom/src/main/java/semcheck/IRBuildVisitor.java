@@ -54,6 +54,8 @@ public class IRBuildVisitor implements BuildVisitor {
 
     private boolean insideMatchStatementDef = false;
 
+    private boolean allBranchesReturnCoverage = true;
+
     public IRBuildVisitor() {
         this.typeEvaluationVisitor = new TypeEvaluationVisitor();
         this.stdLib = new StdLibImpl();
@@ -103,12 +105,29 @@ public class IRBuildVisitor implements BuildVisitor {
             st.accept(this);
         }
         var block = scopedBlocks.pop();
+        validateReturns(block);
         currentUserFunctionDef.setInstructions(block);
         globalBlock.getFunctions().put(currentUserFunctionDef.getName(), currentUserFunctionDef);
         if (!globalBlock.getGlobalScope().addFunction(currentUserFunctionDef)) {
             throw new SemCheckException(String.format("Illegal redefinition of function named: %s found", currentUserFunctionDef.getName()));
         }
+
         currentUserFunctionDef = null;
+    }
+
+    private void validateReturns(Block block) throws SemCheckException {
+        for(var instruction : block.getInstructions()) {
+            if (instruction instanceof ReturnInstruction) {
+                return;
+            }
+            if (instruction instanceof IfInstruction ifInstruction) {
+                validateReturns(ifInstruction.getTrueBlock());
+                if (ifInstruction.getFalseBlock() != null) {
+                    validateReturns(ifInstruction.getFalseBlock());
+                }
+            }
+        }
+        throw new SemCheckException(String.format("Missing return statement in function: `%s`", currentUserFunctionDef.getName()));
     }
 
     @Override
@@ -245,6 +264,10 @@ public class IRBuildVisitor implements BuildVisitor {
         returnStatement.getExpression().accept(this);
         var exp = expressions.pop();
         expressionAsInstruction = true;
+        var expType = exp.evaluateType(typeEvaluationVisitor, scopedBlocks.peek().getScope());
+        if (!expType.equals(currentUserFunctionDef.getReturnType())) {
+            throw new SemCheckException(String.format("Return types in \"%s\" function do not match", currentUserFunctionDef.getName()));
+        }
         returnInstruction.setValue(exp);
         scopedBlocks.peek().getInstructions().add(returnInstruction);
     }

@@ -6,7 +6,11 @@ import executor.ir.Scope;
 import executor.ir.expressions.*;
 import executor.ir.instructions.*;
 
+import java.util.Stack;
+
 public class Interpreter implements Executor {
+
+    private final Stack<Void> executionStack = new Stack<>();//TODO: change Void
 
     public Interpreter() {
 

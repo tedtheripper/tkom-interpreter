@@ -1,7 +1,9 @@
 package executor.ir;
 
 import executor.Interpreter;
+import executor.exceptions.CastException;
 import executor.exceptions.RuntimeException;
+import executor.exceptions.StackOverflowException;
 import lexer.Tokenizer;
 import lexer.exception.LexerException;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +20,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class InterpreterTest {
 
@@ -56,9 +60,6 @@ class InterpreterTest {
             var program = parser.parse();
             var irTree = new SemCheck(program).check();
             var interpreter = new Interpreter(irTree);
-            System.setIn(new ByteArrayInputStream("123".getBytes(StandardCharsets.UTF_8)));
-            PrintStream out = new PrintStream(System.out);
-            System.setOut(out);
             interpreter.runNoisy();
         }
     }
@@ -128,6 +129,57 @@ class InterpreterTest {
             PrintStream out = new PrintStream(System.out);
             System.setOut(out);
             interpreter.runNoisy();
+        }
+    }
+
+    @Nested
+    @DisplayName("Stackoverflow exception tests")
+    class StackOverflowTests {
+        String code = """
+                func fib(int n) : int {
+                    if (n <= 1) {
+                        return n;
+                    }
+                    return fib(n - 2) + fib(n - 1);
+                }
+                                
+                int res = fib(144);
+                print(res as string);
+                              
+                """;
+
+        @Test
+        void shouldThrowStackOverflowExceptionTest() throws IOException, SourceException, LexerException, SyntaxException, SemCheckException, RuntimeException {
+            var source = new TextSource(code);
+            source.load();
+            var lexer = new Tokenizer(source);
+            var parser = new Parser(lexer);
+            var program = parser.parse();
+            var irTree = new SemCheck(program).check();
+            var interpreter = new Interpreter(irTree);
+            assertThrows(StackOverflowException.class, interpreter::runNoisy);
+        }
+    }
+
+    @Nested
+    @DisplayName("Cast exception tests")
+    class CastExceptionTests {
+        String code = """                 
+                int? res = null;
+                print(res as string);
+                              
+                """;
+
+        @Test
+        void shouldThrowCastExceptionTest() throws IOException, SourceException, LexerException, SyntaxException, SemCheckException, RuntimeException {
+            var source = new TextSource(code);
+            source.load();
+            var lexer = new Tokenizer(source);
+            var parser = new Parser(lexer);
+            var program = parser.parse();
+            var irTree = new SemCheck(program).check();
+            var interpreter = new Interpreter(irTree);
+            assertThrows(CastException.class, interpreter::runNoisy);
         }
     }
 

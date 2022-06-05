@@ -205,7 +205,7 @@ public class Interpreter implements Executor {
         var funDef = (UserFunction)global.getFunctions().get(functionCall.getName());
         var callContext = new FunctionCallContext(functionDef.getScope().getVariablesOrder(), argumentValues, funDef.getScope(), global.getFunctions().get(functionCall.getName()));
         if (callStack.size() == MAX_STACK_SIZE) {
-            throw new StackOverflowException(String.format("Stack size exceeded %d", MAX_STACK_SIZE));
+            throw new StackOverflowException(String.format("Stack size: %d exceeded", MAX_STACK_SIZE));
         }
         callStack.push(callContext);
         funDef.getInstructions().execute(this, callContext.getScope());

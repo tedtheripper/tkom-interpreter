@@ -30,7 +30,7 @@ import semcheck.exception.SemCheckException;
 
 import java.util.*;
 
-public class IRVisitor implements Visitor {
+public class IRBuildVisitor implements BuildVisitor {
 
     private final TypeEvaluationVisitor typeEvaluationVisitor;
     private final StdLibImpl stdLib;
@@ -54,7 +54,7 @@ public class IRVisitor implements Visitor {
 
     private boolean insideMatchStatementDef = false;
 
-    public IRVisitor() {
+    public IRBuildVisitor() {
         this.typeEvaluationVisitor = new TypeEvaluationVisitor();
         this.stdLib = new StdLibImpl();
     }
@@ -367,6 +367,7 @@ public class IRVisitor implements Visitor {
 
         if (expressionAsInstruction) {
             var instructionExpression = new InstructionExpression();
+            instructionExpression.setScope(new Scope(scopedBlocks.peek().getScope()));
             instructionExpression.setExpression(exp);
             scopedBlocks.peek().getInstructions().add(instructionExpression);
         } else {

@@ -5,7 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import parser.SyntaxNode;
 import parser.expressions.Expression;
-import semcheck.Visitor;
+import semcheck.BuildVisitor;
 import semcheck.exception.SemCheckException;
 
 import java.util.List;
@@ -19,7 +19,7 @@ public class IfBlock implements SyntaxNode {
     private final List<Statement> statements;
 
     @Override
-    public void accept(Visitor visitor) throws SemCheckException {
+    public void accept(BuildVisitor visitor) throws SemCheckException {
         visitor.visitIfBlock(this);
     }
 }

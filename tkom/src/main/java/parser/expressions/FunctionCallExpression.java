@@ -3,7 +3,7 @@ package parser.expressions;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import semcheck.Visitor;
+import semcheck.BuildVisitor;
 import semcheck.exception.SemCheckException;
 
 import java.util.List;
@@ -17,7 +17,7 @@ public class FunctionCallExpression implements Expression {
     private final List<Expression> argumentList;
 
     @Override
-    public void accept(Visitor visitor) throws SemCheckException {
+    public void accept(BuildVisitor visitor) throws SemCheckException {
         visitor.visitFunctionCallExpression(this);
     }
 }

@@ -1,5 +1,6 @@
 package semcheck;
 
+import executor.Visitor;
 import parser.Parameter;
 import parser.Program;
 import parser.Type;
@@ -7,7 +8,7 @@ import parser.expressions.*;
 import parser.statements.*;
 import semcheck.exception.SemCheckException;
 
-public interface Visitor {
+public interface BuildVisitor extends Visitor {
 
     void visitProgram(Program program) throws SemCheckException;
 

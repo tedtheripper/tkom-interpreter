@@ -1,5 +1,7 @@
 package executor.ir.instructions;
 
+import executor.Executor;
+import executor.exceptions.RuntimeException;
 import executor.ir.Expression;
 import executor.ir.Instruction;
 import executor.ir.Scope;
@@ -19,4 +21,9 @@ public class InsideMatchInstruction implements Instruction {
     private Expression expression;
     private Instruction instruction;
 
+
+    @Override
+    public void execute(Executor executor, Scope scope) throws RuntimeException {
+        executor.execute(this, scope);
+    }
 }

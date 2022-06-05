@@ -3,7 +3,7 @@ package parser.expressions;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import semcheck.Visitor;
+import semcheck.BuildVisitor;
 import semcheck.exception.SemCheckException;
 
 @AllArgsConstructor
@@ -16,7 +16,7 @@ public class CompExpression implements Expression{
     private final Operator operator;
 
     @Override
-    public void accept(Visitor visitor) throws SemCheckException {
+    public void accept(BuildVisitor visitor) throws SemCheckException {
         visitor.visitCompExpression(this);
     }
 }

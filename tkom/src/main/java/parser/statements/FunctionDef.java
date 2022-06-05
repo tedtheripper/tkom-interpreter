@@ -5,7 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import parser.Parameter;
 import parser.Type;
-import semcheck.Visitor;
+import semcheck.BuildVisitor;
 import semcheck.exception.SemCheckException;
 
 import java.util.List;
@@ -21,7 +21,7 @@ public class FunctionDef implements Statement{
     private List<Statement> statementsBlock;
 
     @Override
-    public void accept(Visitor visitor) throws SemCheckException {
+    public void accept(BuildVisitor visitor) throws SemCheckException {
         visitor.visitFunctionDef(this);
     }
 }

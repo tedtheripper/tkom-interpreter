@@ -1,4 +1,5 @@
 package executor.ir;
 
-public interface Instruction {
+public interface Instruction extends IrNode{
+
 }

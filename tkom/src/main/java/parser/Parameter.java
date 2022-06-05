@@ -3,7 +3,7 @@ package parser;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import semcheck.Visitor;
+import semcheck.BuildVisitor;
 
 @AllArgsConstructor
 @Getter
@@ -14,7 +14,7 @@ public class Parameter implements SyntaxNode{
     private final String identifier;
 
     @Override
-    public void accept(Visitor visitor) {
+    public void accept(BuildVisitor visitor) {
         visitor.visitParameter(this);
     }
 }

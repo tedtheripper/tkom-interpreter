@@ -1,11 +1,12 @@
 package semcheck;
 
+import executor.Visitor;
 import executor.ir.Scope;
 import executor.ir.Type;
 import executor.ir.expressions.*;
 import semcheck.exception.SemCheckException;
 
-public interface TypeVisitor {
+public interface TypeVisitor extends Visitor {
 
     Type visit(AddExpression addExpression, Scope scope) throws SemCheckException;
 

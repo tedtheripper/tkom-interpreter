@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import parser.expressions.Expression;
-import semcheck.Visitor;
+import semcheck.BuildVisitor;
 import semcheck.exception.SemCheckException;
 
 @AllArgsConstructor
@@ -17,7 +17,7 @@ public class InsideMatchStatement implements Statement {
     private final Statement simpleStatement;
 
     @Override
-    public void accept(Visitor visitor) throws SemCheckException {
+    public void accept(BuildVisitor visitor) throws SemCheckException {
         visitor.visitInsideMatchStatement(this);
     }
 }

@@ -1,5 +1,7 @@
 package executor.ir.instructions;
 
+import executor.Executor;
+import executor.exceptions.RuntimeException;
 import executor.ir.Expression;
 import executor.ir.Instruction;
 import executor.ir.Scope;
@@ -20,4 +22,8 @@ public class MatchInstruction implements Instruction {
     private Expression expression;
     private List<Instruction> matchStatements;
 
+    @Override
+    public void execute(Executor executor, Scope scope) throws RuntimeException {
+        executor.execute(this, scope);
+    }
 }

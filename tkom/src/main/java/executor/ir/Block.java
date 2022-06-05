@@ -1,15 +1,16 @@
 package executor.ir;
 
+import executor.Executor;
+import executor.exceptions.RuntimeException;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Getter
 @Setter
-public class Block {
+public class Block implements IrNode{
 
     private Scope scope;
     private List<Instruction> instructions;
@@ -23,7 +24,8 @@ public class Block {
         this.scope = scope;
     }
 
-    public void execute(Scope scope, Map<String, UserFunction> definedFunctions) {
-
+    @Override
+    public void execute(Executor executor, Scope scope) throws RuntimeException {
+        executor.execute(this, scope);
     }
 }

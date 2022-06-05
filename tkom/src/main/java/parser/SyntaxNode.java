@@ -1,9 +1,9 @@
 package parser;
 
-import semcheck.Visitor;
+import semcheck.BuildVisitor;
 import semcheck.exception.SemCheckException;
 
 public interface SyntaxNode {
 
-    void accept(Visitor visitor) throws SemCheckException;
+    void accept(BuildVisitor visitor) throws SemCheckException;
 }

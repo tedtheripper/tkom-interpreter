@@ -1,5 +1,7 @@
 package executor.ir;
 
+import executor.Executor;
+import executor.exceptions.RuntimeException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,12 +14,15 @@ import java.util.Map;
 @NoArgsConstructor
 @Getter
 @Setter
-public class GlobalBlock {
+public class GlobalBlock implements IrNode{
 
     private Scope globalScope;
     private Map<String, Function> functions;
     private List<Instruction> instructions;
 
-
+    @Override
+    public void execute(Executor executor, Scope scope) throws RuntimeException {
+        executor.execute(this, scope);
+    }
 
 }

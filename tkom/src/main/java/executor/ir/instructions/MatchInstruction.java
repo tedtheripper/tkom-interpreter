@@ -20,7 +20,7 @@ public class MatchInstruction implements Instruction {
 
     private Scope scope;
     private Expression expression;
-    private List<Instruction> matchStatements;
+    private List<InsideMatchInstruction> matchStatements;
 
     @Override
     public void execute(Executor executor, Scope scope) throws RuntimeException {

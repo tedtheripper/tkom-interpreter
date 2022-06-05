@@ -1,16 +1,20 @@
 package app;
 
+import executor.Interpreter;
+import executor.exceptions.RuntimeException;
 import lexer.Tokenizer;
 import lexer.exception.LexerException;
 import parser.Parser;
 import parser.exception.SyntaxException;
+import semcheck.IRBuildVisitor;
+import semcheck.exception.SemCheckException;
 import source_loader.FileSource;
 import source_loader.exception.SourceException;
 
 import java.io.IOException;
 
 public class StartApplication {
-    public static void main(String[] args) throws IOException, SourceException, LexerException, SyntaxException {
+    public static void main(String[] args) throws IOException, SourceException, LexerException, SyntaxException, SemCheckException, RuntimeException {
 
         String filePath = "";
 
@@ -24,6 +28,11 @@ public class StartApplication {
         var parser = new Parser(tokenizer);
 
         var program = parser.parse();
+
+        var visitor = new IRBuildVisitor();
+        var block = visitor.export(program);
+        var interpreter = new Interpreter(block);
+        interpreter.run();
 
 //        List<Token> tokens = new ArrayList<>();
 //

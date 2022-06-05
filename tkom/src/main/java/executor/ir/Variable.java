@@ -13,6 +13,7 @@ public class Variable {
     private Type type;
     private boolean isMutable;
     private Expression value;
+    private ExecutorObject object;
 
     public Variable(String name, Type type, boolean isMutable) {
         this.name = name;

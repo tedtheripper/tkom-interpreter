@@ -23,7 +23,7 @@ public class StdLibImpl {
     }
 
     public Map<String, Function> getEmbeddedFunctionsDefinitions() {
-        return this.embeddedFunctionsDefinitions;
+        return new HashMap<>(this.embeddedFunctionsDefinitions);
     }
 
     public void usePrint(String text) {

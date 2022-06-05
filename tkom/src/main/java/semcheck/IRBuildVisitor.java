@@ -98,6 +98,9 @@ public class IRBuildVisitor implements BuildVisitor {
         functionDef.getParameterList().forEach(param -> param.accept(this));
         functionReturnType = true;
         functionDef.getFunctionReturnType().accept(this);
+        if (!globalBlock.getGlobalScope().addFunction(currentUserFunctionDef)) {
+            throw new SemCheckException(String.format("Illegal redefinition of function named: %s found", currentUserFunctionDef.getName()));
+        }
         var newBlock = new Block();
         newBlock.getScope().setUpperScope(currentUserFunctionDef.getScope());
         scopedBlocks.push(newBlock);
@@ -108,22 +111,29 @@ public class IRBuildVisitor implements BuildVisitor {
         validateReturns(block);
         currentUserFunctionDef.setInstructions(block);
         globalBlock.getFunctions().put(currentUserFunctionDef.getName(), currentUserFunctionDef);
-        if (!globalBlock.getGlobalScope().addFunction(currentUserFunctionDef)) {
-            throw new SemCheckException(String.format("Illegal redefinition of function named: %s found", currentUserFunctionDef.getName()));
-        }
-
+        var func = (UserFunction)globalBlock.getGlobalScope().getFunction(currentUserFunctionDef.getName());
+        func.setInstructions(block);
         currentUserFunctionDef = null;
     }
 
     private void validateReturns(Block block) throws SemCheckException {
-        for(var instruction : block.getInstructions()) {
-            if (instruction instanceof ReturnInstruction) {
-                return;
-            }
+        validateReturnsList(block.getInstructions());
+    }
+
+    private void validateReturnsList(List<Instruction> instructions) throws SemCheckException {
+        for(var instruction : instructions) {
+            if (instruction instanceof ReturnInstruction) return;
             if (instruction instanceof IfInstruction ifInstruction) {
                 validateReturns(ifInstruction.getTrueBlock());
                 if (ifInstruction.getFalseBlock() != null) {
                     validateReturns(ifInstruction.getFalseBlock());
+                }
+            }
+            if (instruction instanceof MatchInstruction matchInstruction) {
+                for (var matchIn : matchInstruction.getMatchStatements()) {
+                    if (matchIn.isDefault() && (matchIn.getInstruction() instanceof ReturnInstruction))  {
+                        return;
+                    }
                 }
             }
         }
@@ -260,15 +270,17 @@ public class IRBuildVisitor implements BuildVisitor {
             throw new SemCheckException("Found return outside of function");
         }
         var returnInstruction = new ReturnInstruction();
-        expressionAsInstruction = false;
-        returnStatement.getExpression().accept(this);
-        var exp = expressions.pop();
-        expressionAsInstruction = true;
-        var expType = exp.evaluateType(typeEvaluationVisitor, scopedBlocks.peek().getScope());
-        if (!expType.equals(currentUserFunctionDef.getReturnType())) {
-            throw new SemCheckException(String.format("Return types in \"%s\" function do not match", currentUserFunctionDef.getName()));
+        if (returnStatement.getExpression() != null) {
+            expressionAsInstruction = false;
+            returnStatement.getExpression().accept(this);
+            var exp = expressions.pop();
+            expressionAsInstruction = true;
+            var expType = exp.evaluateType(typeEvaluationVisitor, scopedBlocks.peek().getScope());
+            if (!expType.equals(currentUserFunctionDef.getReturnType())) {
+                throw new SemCheckException(String.format("Return types in \"%s\" function do not match", currentUserFunctionDef.getName()));
+            }
+            returnInstruction.setValue(exp);
         }
-        returnInstruction.setValue(exp);
         scopedBlocks.peek().getInstructions().add(returnInstruction);
     }
 
@@ -287,8 +299,8 @@ public class IRBuildVisitor implements BuildVisitor {
         expressionAsInstruction = true;
         var exp = expressions.pop();
 
-        if (!isCorrectType(exp, currentVariable.getType().getTypeName(), scopedBlocks.peek().getScope())) {
-            throw new SemCheckException(String.format("Wrong right side type in declaration of to %s variable", currentVariable.getName()));
+        if (!isCorrectNullableType(exp, currentVariable.getType(), scopedBlocks.peek().getScope())) {
+            throw new SemCheckException(String.format("Wrong right side type in declaration of %s variable", currentVariable.getName()));
         }
         currentVariable.setValue(exp);
         var varDeclaration = new VarDeclaration();
@@ -525,6 +537,7 @@ public class IRBuildVisitor implements BuildVisitor {
         exp = (LibFunctionCall) expressions.pop();
         exp.setArguments(arguments);
 
+        exp.evaluateType(this.typeEvaluationVisitor, scopedBlocks.peek().getScope());
 
         if (expressionAsInstruction) {
             var instructionExpression = new InstructionExpression();
@@ -541,6 +554,9 @@ public class IRBuildVisitor implements BuildVisitor {
             var exp = new FunctionCall(identifier.getName(), List.of(new executor.ir.expressions.Identifier("_")));
             expressions.push(exp);
             return;
+        }
+        if (!scopedBlocks.peek().getScope().hasVariable(identifier.getName())) {
+            throw new SemCheckException(String.format("Variable: %s is not defined", identifier.getName()));
         }
         var exp = new executor.ir.expressions.Identifier(identifier.getName());
         throwOnInvalidExpressionUse();
@@ -749,6 +765,13 @@ public class IRBuildVisitor implements BuildVisitor {
         var expType = exp.evaluateType(this.typeEvaluationVisitor, scope);
         if (expType == null) return false;
         return expType.getTypeName().equals(expectedTypeName);
+    }
+
+    private boolean isCorrectNullableType(Expression exp, executor.ir.Type type, Scope scope) throws SemCheckException {
+        var expType = exp.evaluateType(this.typeEvaluationVisitor, scope);
+        if (type.getTypeName() == null) throw new SemCheckException("Invalid type");
+        if (expType == null) return type.isNullable();
+        return expType.getTypeName().equals(type.getTypeName());
     }
 
     private boolean isCorrectType(Expression exp, List<String> expectedTypeNames, Scope scope) throws SemCheckException {

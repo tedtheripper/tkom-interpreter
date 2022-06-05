@@ -68,13 +68,6 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Cannot cast from double to bool");
         }
 
-        if (expType != null && expType.isNullable() && !asExpression.getType().isNullable()) {
-            throw new SemCheckException("Cannot cast from nullable to non-nullable type, use ?? operator instead");
-        }
-
-        if (!asExpression.getType().isNullable()) {
-            throw new SemCheckException("Cannot cast to non-nullable type");
-        }
         return asExpression.getType();
     }
 
@@ -83,7 +76,7 @@ public class TypeEvaluationVisitor implements TypeVisitor {
         var variableTypeName = scope.getVariable(assignmentExpression.getVariableName()).getType().getTypeName();
         var rightType = assignmentExpression.getRightSide().evaluateType(this, scope);
 
-        if (!variableTypeName.equals(rightType.getTypeName())) {
+        if (rightType != null && !variableTypeName.equals(rightType.getTypeName())) {
             throw new SemCheckException("Type mismatch for ASSIGNMENT operation");
         }
 
@@ -104,6 +97,15 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Tried COMPARING null values");
         }
 
+        if (leftType.isNullable() || rightType.isNullable()) {
+            throw new SemCheckException("COMPARISON is illegal with nullable types");
+        }
+
+        if (leftType.getTypeName().equals("bool") || rightType.getTypeName().equals("bool")) {
+            throw new SemCheckException("Illegal type for COMPARISON operation: bool");
+        }
+
+
         if (!leftType.getTypeName().equals(rightType.getTypeName())) {
             throw new SemCheckException("Type mismatch for COMPARISON operation");
         }
@@ -120,6 +122,10 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Tried DIV on null values");
         }
 
+        if (leftType.isNullable() || rightType.isNullable()) {
+            throw new SemCheckException("DIV operation is illegal with nullable types");
+        }
+
         if (leftType.getTypeName().equals("string") || rightType.getTypeName().equals("string")) {
             throw new SemCheckException("Tried DIV on string values");
         }
@@ -128,7 +134,11 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Tried DIV on bool values");
         }
 
-        return new Type(false, "float");
+        if (!leftType.getTypeName().equals(rightType.getTypeName())) {
+            throw new SemCheckException("Type mismatch in DIV operation");
+        }
+
+        return new Type(false, "double");
     }
 
     @Override
@@ -140,6 +150,10 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Tried DIVINT on null values");
         }
 
+        if (leftType.isNullable() || rightType.isNullable()) {
+            throw new SemCheckException("DIVINT operation is illegal with nullable types");
+        }
+
         if (leftType.getTypeName().equals("string") || rightType.getTypeName().equals("string")) {
             throw new SemCheckException("Tried DIVINT on string values");
         }
@@ -148,7 +162,11 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Tried DIVINT on bool values");
         }
 
-        return new Type(false, "int");
+        if (!leftType.getTypeName().equals(rightType.getTypeName())) {
+            throw new SemCheckException("Type mismatch in DIV operation");
+        }
+
+        return new Type(false, leftType.getTypeName());
     }
 
     @Override
@@ -332,7 +350,7 @@ public class TypeEvaluationVisitor implements TypeVisitor {
 
     private void checkArguments(String functionName, Map<String, Variable> paramDefs, List<String> paramOrder, List<Expression> arguments, Scope scope) throws SemCheckException {
         if (arguments.size() != paramOrder.size()) {
-            throw new SemCheckException(String.format("Arguments for function: %s do not match defined function definition", functionName));
+            throw new SemCheckException(String.format("Arguments for function: %s do not match function definition", functionName));
         }
 
         int position = 0;

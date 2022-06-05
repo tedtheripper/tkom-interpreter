@@ -6,7 +6,7 @@ import lexer.Tokenizer;
 import lexer.exception.LexerException;
 import parser.Parser;
 import parser.exception.SyntaxException;
-import semcheck.IRBuildVisitor;
+import semcheck.SemCheck;
 import semcheck.exception.SemCheckException;
 import source_loader.FileSource;
 import source_loader.exception.SourceException;
@@ -26,31 +26,12 @@ public class StartApplication {
         var tokenizer = new Tokenizer(source);
 
         var parser = new Parser(tokenizer);
-
         var program = parser.parse();
 
-        var visitor = new IRBuildVisitor();
-        var block = visitor.export(program);
-        var interpreter = new Interpreter(block);
+        var semCheck = new SemCheck(program);
+        var interpreter = new Interpreter(semCheck.check());
         interpreter.run();
 
-//        List<Token> tokens = new ArrayList<>();
-//
-//        try {
-//            var token = tokenizer.getNextToken();
-//            tokens.add(token);
-//            while(token.type() != TokenType.T_ETX) {
-//                token = tokenizer.getNextToken();
-//                tokens.add(token);
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-
-//        for(var item : tokens) {
-//            System.out.println(item);
-//        }
-
-        System.out.println("FINISHED");
+        System.out.println("DONE");
     }
 }

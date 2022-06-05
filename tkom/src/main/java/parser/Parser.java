@@ -606,27 +606,27 @@ public class Parser {
     }
 
     private void throwUnexpectedTokenException(TokenType expected) throws UnexpectedTokenException {
-        throw new UnexpectedTokenException(getCurrentTokenPosition(), getCurrentTokenType(), expected);
+        throw new UnexpectedTokenException("Unexpected token occurred", getCurrentTokenPosition(), getCurrentTokenType(), expected);
     }
 
     private void throwMissingExpressionException() throws MissingExpressionException {
-        throw new MissingExpressionException(getCurrentTokenPosition());
+        throw new MissingExpressionException("Missing expression", getCurrentTokenPosition());
     }
 
     private void throwMissingParameterException() throws MissingParameterException {
-        throw new MissingParameterException(getCurrentTokenPosition());
+        throw new MissingParameterException("Missing parameter", getCurrentTokenPosition());
     }
 
     private void throwMissingSemicolonException() throws MissingSemicolonException {
-        throw new MissingSemicolonException(getCurrentTokenPosition());
+        throw new MissingSemicolonException("Missing semicolon", getCurrentTokenPosition());
     }
 
     private void throwMissingStatementBlockException() throws MissingStatementBlockException {
-        throw new MissingStatementBlockException(getCurrentTokenPosition());
+        throw new MissingStatementBlockException("Missing statement block", getCurrentTokenPosition());
     }
 
     private void throwMissingStatementException() throws MissingStatementException {
-        throw new MissingStatementException(getCurrentTokenPosition());
+        throw new MissingStatementException("Missing statement", getCurrentTokenPosition());
     }
 
     private boolean isLiteral(TokenType type) {

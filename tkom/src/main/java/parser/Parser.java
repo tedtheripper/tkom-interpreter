@@ -529,6 +529,11 @@ public class Parser {
             if (expression == null)
                  throwMissingExpressionException();
             return new UnaryExpression(expression, new Operator(TokenType.T_UNARY_OP.getText()));
+        } else if (checkAndConsume(TokenType.T_SUB_OP)) {
+            var expression = tryParseBaseExpression();
+            if (expression == null)
+                throwMissingExpressionException();
+            return new UnaryExpression(expression, new Operator(TokenType.T_SUB_OP.getText()));
         } else {
             return tryParseBaseExpression();
         }

@@ -12,6 +12,11 @@ import java.util.Map;
 
 public class TypeEvaluationVisitor implements TypeVisitor {
 
+    private static final String INT_TYPE_NAME = "int";
+    private static final String STRING_TYPE_NAME = "string";
+    private static final String DOUBLE_TYPE_NAME = "double";
+    private static final String BOOL_TYPE_NAME = "bool";
+
     public TypeEvaluationVisitor() {
         //
     }
@@ -29,7 +34,7 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Type mismatch for ADD operation");
         }
 
-        if (leftType.getTypeName().equals("bool") || rightType.getTypeName().equals("bool")) {
+        if (leftType.getTypeName().equals(BOOL_TYPE_NAME) || rightType.getTypeName().equals(BOOL_TYPE_NAME)) {
             throw new SemCheckException("ADD is forbidden for bool type");
         }
 
@@ -49,11 +54,11 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("AND operation is forbidden for nullable types");
         }
 
-        if (!leftType.getTypeName().equals("bool") || !rightType.getTypeName().equals("bool")) {
+        if (!leftType.getTypeName().equals(BOOL_TYPE_NAME) || !rightType.getTypeName().equals(BOOL_TYPE_NAME)) {
             throw new SemCheckException("AND operation is forbidden for any type besides bool");
         }
 
-        return new Type(false, "bool");
+        return new Type(false, BOOL_TYPE_NAME);
     }
 
     @Override
@@ -64,7 +69,7 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Cannot wrap null in non-nullable type");
         }
 
-        if (expType != null && expType.getTypeName().equals("double") && asExpression.getType().getTypeName().equals("bool")) {
+        if (expType != null && expType.getTypeName().equals(DOUBLE_TYPE_NAME) && asExpression.getType().getTypeName().equals(BOOL_TYPE_NAME)) {
             throw new SemCheckException("Cannot cast from double to bool");
         }
 
@@ -101,7 +106,7 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("COMPARISON is illegal with nullable types");
         }
 
-        if (leftType.getTypeName().equals("bool") || rightType.getTypeName().equals("bool")) {
+        if (leftType.getTypeName().equals(BOOL_TYPE_NAME) || rightType.getTypeName().equals(BOOL_TYPE_NAME)) {
             throw new SemCheckException("Illegal type for COMPARISON operation: bool");
         }
 
@@ -110,7 +115,7 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Type mismatch for COMPARISON operation");
         }
 
-        return new Type(false, "bool");
+        return new Type(false, BOOL_TYPE_NAME);
     }
 
     @Override
@@ -126,11 +131,11 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("DIV operation is illegal with nullable types");
         }
 
-        if (leftType.getTypeName().equals("string") || rightType.getTypeName().equals("string")) {
+        if (leftType.getTypeName().equals(STRING_TYPE_NAME) || rightType.getTypeName().equals(STRING_TYPE_NAME)) {
             throw new SemCheckException("Tried DIV on string values");
         }
 
-        if (leftType.getTypeName().equals("bool") || rightType.getTypeName().equals("bool")) {
+        if (leftType.getTypeName().equals(BOOL_TYPE_NAME) || rightType.getTypeName().equals(BOOL_TYPE_NAME)) {
             throw new SemCheckException("Tried DIV on bool values");
         }
 
@@ -138,7 +143,7 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Type mismatch in DIV operation");
         }
 
-        return new Type(false, "double");
+        return new Type(false, DOUBLE_TYPE_NAME);
     }
 
     @Override
@@ -154,11 +159,11 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("DIVINT operation is illegal with nullable types");
         }
 
-        if (leftType.getTypeName().equals("string") || rightType.getTypeName().equals("string")) {
+        if (leftType.getTypeName().equals(STRING_TYPE_NAME) || rightType.getTypeName().equals(STRING_TYPE_NAME)) {
             throw new SemCheckException("Tried DIVINT on string values");
         }
 
-        if (leftType.getTypeName().equals("bool") || rightType.getTypeName().equals("bool")) {
+        if (leftType.getTypeName().equals(BOOL_TYPE_NAME) || rightType.getTypeName().equals(BOOL_TYPE_NAME)) {
             throw new SemCheckException("Tried DIVINT on bool values");
         }
 
@@ -182,17 +187,17 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Match comparison does not allow null values, use `is null` instead");
         }
 
-        return new Type(false, "bool");
+        return new Type(false, BOOL_TYPE_NAME);
     }
 
     @Override
     public Type visit(InsideMatchTypeExpression insideMatchTypeExpression, Scope scope) {
-        return new Type(false, "bool");
+        return new Type(false, BOOL_TYPE_NAME);
     }
 
     @Override
     public Type visit(IsExpression isExpression, Scope scope) {
-        return new Type(false, "bool");
+        return new Type(false, BOOL_TYPE_NAME);
     }
 
     @Override
@@ -204,11 +209,11 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Tried MOD on null value");
         }
 
-        if (!leftType.getTypeName().equals("int") || !rightType.getTypeName().equals("int")) {
+        if (!leftType.getTypeName().equals(INT_TYPE_NAME) || !rightType.getTypeName().equals(INT_TYPE_NAME)) {
             throw new SemCheckException("MOD operation is illegal with types other than int");
         }
 
-        return new Type(false, "int");
+        return new Type(false, INT_TYPE_NAME);
     }
 
     @Override
@@ -220,11 +225,11 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Tried MUL on null value");
         }
 
-        if (leftType.getTypeName().equals("bool") || rightType.getTypeName().equals("bool")) {
+        if (leftType.getTypeName().equals(BOOL_TYPE_NAME) || rightType.getTypeName().equals(BOOL_TYPE_NAME)) {
             throw new SemCheckException("MUL operation is illegal with bool type");
         }
 
-        if (leftType.getTypeName().equals("string") || rightType.getTypeName().equals("string")) {
+        if (leftType.getTypeName().equals(STRING_TYPE_NAME) || rightType.getTypeName().equals(STRING_TYPE_NAME)) {
             throw new SemCheckException("MUL operation is illegal with string type");
         }
 
@@ -274,11 +279,11 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("OR operation is forbidden for nullable types");
         }
 
-        if (!leftType.getTypeName().equals("bool") || !rightType.getTypeName().equals("bool")) {
+        if (!leftType.getTypeName().equals(BOOL_TYPE_NAME) || !rightType.getTypeName().equals(BOOL_TYPE_NAME)) {
             throw new SemCheckException("OR operation is forbidden for any type besides bool");
         }
 
-        return new Type(false, "bool");
+        return new Type(false, BOOL_TYPE_NAME);
     }
 
     @Override
@@ -348,14 +353,14 @@ public class TypeEvaluationVisitor implements TypeVisitor {
         return function.getReturnType();
     }
 
-    private void checkArguments(String functionName, Map<String, Variable> paramDefs, List<String> paramOrder, List<Expression> arguments, Scope scope) throws SemCheckException {
+    private void checkArguments(String functionName, Map<String, Variable> paramDefinitions, List<String> paramOrder, List<Expression> arguments, Scope scope) throws SemCheckException {
         if (arguments.size() != paramOrder.size()) {
             throw new SemCheckException(String.format("Arguments for function: %s do not match function definition", functionName));
         }
 
         int position = 0;
         for (var p : paramOrder) {
-            var param = paramDefs.get(p);
+            var param = paramDefinitions.get(p);
             var exp = arguments.get(position);
             var expType = exp.evaluateType(this, scope);
             if (!expType.getTypeName().equals(param.getType().getTypeName())) {
@@ -370,10 +375,10 @@ public class TypeEvaluationVisitor implements TypeVisitor {
     }
 
     private Type checkCombinationsMathOperations(Type leftType, Type rightType) {
-        if (leftType.getTypeName().equals("int") && rightType.getTypeName().equals("int")) return new Type(false, "int");
-        if (leftType.getTypeName().equals("int") && rightType.getTypeName().equals("double")) return new Type(false, "double");
-        if (leftType.getTypeName().equals("double") && rightType.getTypeName().equals("int")) return new Type(false, "double");
-        if (leftType.getTypeName().equals("double") && rightType.getTypeName().equals("double")) return new Type(false, "double");
+        if (leftType.getTypeName().equals(INT_TYPE_NAME) && rightType.getTypeName().equals(INT_TYPE_NAME)) return new Type(false, INT_TYPE_NAME);
+        if (leftType.getTypeName().equals(INT_TYPE_NAME) && rightType.getTypeName().equals(DOUBLE_TYPE_NAME)) return new Type(false, DOUBLE_TYPE_NAME);
+        if (leftType.getTypeName().equals(DOUBLE_TYPE_NAME) && rightType.getTypeName().equals(INT_TYPE_NAME)) return new Type(false, DOUBLE_TYPE_NAME);
+        if (leftType.getTypeName().equals(DOUBLE_TYPE_NAME) && rightType.getTypeName().equals(DOUBLE_TYPE_NAME)) return new Type(false, DOUBLE_TYPE_NAME);
         return null;
     }
 }

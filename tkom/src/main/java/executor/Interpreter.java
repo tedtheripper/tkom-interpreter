@@ -325,7 +325,6 @@ public class Interpreter implements Executor {
     public void execute(MulExpression mulExpression, Scope scope) throws RuntimeException {
         mulExpression.getLeftExpression().execute(this, scope);
         mulExpression.getRightExpression().execute(this, scope);
-        var obj = objects.peek();
         var rightValue = objects.pop();
         var leftValue = objects.pop();
         if (leftValue instanceof IntegerObject left && rightValue instanceof IntegerObject right) {

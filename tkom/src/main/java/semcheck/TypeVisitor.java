@@ -11,17 +11,17 @@ public interface TypeVisitor {
 
     Type visit(AndExpression andExpression, Scope scope) throws SemCheckException;
 
-    Type visit(AsExpression asExpression, Scope scope);
+    Type visit(AsExpression asExpression, Scope scope) throws SemCheckException;
 
     Type visit(AssignmentExpression assignmentExpression, Scope scope) throws SemCheckException;
 
     Type visit(BaseExpression baseExpression, Scope scope) throws SemCheckException;
 
-    Type visit(CompExpression compExpression, Scope scope);
+    Type visit(CompExpression compExpression, Scope scope) throws SemCheckException;
 
-    Type visit(DivExpression divExpression, Scope scope);
+    Type visit(DivExpression divExpression, Scope scope) throws SemCheckException;
 
-    Type visit(DivIntExpression divIntExpression, Scope scope);
+    Type visit(DivIntExpression divIntExpression, Scope scope) throws SemCheckException;
 
     Type visit(Identifier identifier, Scope scope);
 
@@ -31,7 +31,7 @@ public interface TypeVisitor {
 
     Type visit(IsExpression isExpression, Scope scope);
 
-    Type visit(ModExpression modExpression, Scope scope);
+    Type visit(ModExpression modExpression, Scope scope) throws SemCheckException;
 
     Type visit(MulExpression mulExpression, Scope scope);
 
@@ -44,5 +44,8 @@ public interface TypeVisitor {
     Type visit(UnaryExpression unaryExpression, Scope scope) throws SemCheckException;
 
     Type visit(ConstExpression constExpression, Scope scope);
+
+    Type visit(FunctionCall functionCall, Scope scope) throws SemCheckException;
+
 }
 

@@ -4,6 +4,7 @@ import executor.ir.Expression;
 import executor.ir.*;
 import executor.ir.expressions.AsExpression;
 import executor.ir.expressions.ConstExpression;
+import executor.ir.expressions.FunctionCall;
 import executor.ir.expressions.IsExpression;
 import executor.ir.instructions.*;
 import parser.Parameter;
@@ -47,7 +48,9 @@ public class IRVisitor implements Visitor {
         globalBlock = new GlobalBlock();
         globalBlock.setGlobalScope(new Scope());
         globalBlock.setFunctions(new HashMap<>());
-        scopedBlocks.push(new Block());
+        var newBlock = new Block();
+        newBlock.getScope().setUpperScope(globalBlock.getGlobalScope());
+        scopedBlocks.push(newBlock);
         for (var st : program.getStatements()) {
             st.accept(this);
         }
@@ -68,7 +71,9 @@ public class IRVisitor implements Visitor {
         functionDef.getParameterList().forEach(param -> param.accept(this));
         functionReturnType = true;
         functionDef.getFunctionReturnType().accept(this);
-        scopedBlocks.push(new Block());
+        var newBlock = new Block();
+        newBlock.getScope().setUpperScope(currentFunctionDef.getScope());
+        scopedBlocks.push(newBlock);
         for (var st : functionDef.getStatementsBlock()) {
             st.accept(this);
         }
@@ -102,7 +107,9 @@ public class IRVisitor implements Visitor {
         assert expressions.size() == beforeExpStackSize;
 
         scopedIfInstructions.peek().setCondition(expression);
-        scopedBlocks.push(new Block());
+        var newBlock = new Block();
+        newBlock.getScope().setUpperScope(scopedBlocks.peek().getScope());
+        scopedBlocks.push(newBlock);
 
         var beforeStmtStackSize = expressions.size();
         for (var st : ifBlock.getStatements()) {
@@ -117,7 +124,9 @@ public class IRVisitor implements Visitor {
 
     @Override
     public void visitElseBlock(ElseBlock elseBlock) throws SemCheckException {
-        scopedBlocks.push(new Block());
+        var newBlock = new Block();
+        newBlock.getScope().setUpperScope(scopedBlocks.peek().getScope());
+        scopedBlocks.push(newBlock);
         var beforeStmtStackSize = expressions.size();
         for (var st : elseBlock.getStatements()) {
             st.accept(this);
@@ -140,7 +149,9 @@ public class IRVisitor implements Visitor {
             var exp = expressions.pop();
             currentInsideMatchInstruction.setExpression(exp);
         }
-        scopedBlocks.push(new Block());
+        var newBlock = new Block();
+        newBlock.getScope().setUpperScope(scopedBlocks.peek().getScope());
+        scopedBlocks.push(newBlock);
         insideMatchStatement.getSimpleStatement().accept(this);
         var block = scopedBlocks.pop();
         if (block.getInstructions().size() != 1) {
@@ -172,6 +183,9 @@ public class IRVisitor implements Visitor {
         expressionAsInstruction = true;
         var exp = expressions.pop();
         currentMatchInstruction.setExpression(exp);
+        currentMatchInstruction.getScope().addVariable(
+                new Variable("_", null, false, exp)
+        );
         for(var st : matchStatement.getMatchStatements()) {
             st.accept(this);
         }
@@ -200,6 +214,9 @@ public class IRVisitor implements Visitor {
         currentVariable.setMutable(variableDeclarationStatement.isMutable());
         variableType = true;
         variableDeclarationStatement.getType().accept(this);
+        if (currentVariable.getType().getTypeName().equals("void")) {
+            throw new SemCheckException("Cannot declare variable with void type");
+        }
         expressionAsInstruction = false;
         variableDeclarationStatement.getExpression().accept(this);
         expressionAsInstruction = true;
@@ -221,7 +238,9 @@ public class IRVisitor implements Visitor {
         var exp = expressions.pop();
         expressionAsInstruction = true;
         scopedWhileInstructions.peek().setCondition(exp);
-        scopedBlocks.push(new Block());
+        var newBlock = new Block();
+        newBlock.getScope().setUpperScope(scopedBlocks.peek().getScope());
+        scopedBlocks.push(newBlock);
         for (var st : whileStatement.getStatements()) {
             st.accept(this);
         }

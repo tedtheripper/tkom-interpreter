@@ -14,6 +14,7 @@ public class Scope {
 
     private Scope upperScope;
     private Map<String, Variable> declaredVariables;
+    private Map<String, Function> definedFunctions;
     private List<String> variablesOrder;
     private boolean canDoReturn = false;
     private boolean canJumpLoop = false;
@@ -22,11 +23,13 @@ public class Scope {
         this.upperScope = upperScope;
         this.declaredVariables = new HashMap<>();
         this.variablesOrder = new LinkedList<>();
+        this.definedFunctions = new HashMap<>();
     }
 
     public Scope() {
         this.declaredVariables = new HashMap<>();
         this.variablesOrder = new LinkedList<>();
+        this.definedFunctions = new HashMap<>();
     }
 
     public boolean addVariable(Variable variable) {
@@ -51,6 +54,21 @@ public class Scope {
     public boolean hasVariable(String name) {
         if (declaredVariables.containsKey(name)) return true;
         return this.upperScope != null && this.upperScope.hasVariable(name);
+    }
+
+    public boolean hasFunction(String name) {
+        if (definedFunctions.containsKey(name)) return true;
+        return this.upperScope != null && this.upperScope.hasFunction(name);
+    }
+
+    public Function getFunction(String name) {
+        if (definedFunctions.containsKey(name)) {
+            return definedFunctions.get(name);
+        }
+        if (this.upperScope != null && this.upperScope.hasFunction(name)) {
+            return this.upperScope.getFunction(name);
+        }
+        return null;
     }
 
 }

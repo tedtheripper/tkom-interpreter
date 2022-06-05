@@ -2,6 +2,7 @@ package semcheck;
 
 import executor.ir.*;
 import executor.ir.expressions.AsExpression;
+import executor.ir.expressions.FunctionCall;
 import executor.ir.instructions.*;
 import parser.Program;
 import parser.expressions.*;

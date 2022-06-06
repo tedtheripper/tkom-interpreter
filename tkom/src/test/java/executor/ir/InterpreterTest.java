@@ -183,5 +183,108 @@ class InterpreterTest {
         }
     }
 
+    @Nested
+    @DisplayName("Small tests")
+    class SmallTests {
 
+        @Test
+        void differentCompExpressionsTest() throws IOException, SourceException, LexerException, SyntaxException, SemCheckException, RuntimeException {
+            String code = """
+                bool a = 3.5 > 1.5;
+                bool b = "ab" > "aa";
+                bool c = 5 != 3;
+                              
+                """;
+
+            var source = new TextSource(code);
+            source.load();
+            var lexer = new Tokenizer(source);
+            var parser = new Parser(lexer);
+            var program = parser.parse();
+            var irTree = new SemCheck(program).check();
+            var interpreter = new Interpreter(irTree);
+            interpreter.runNoisy();
+        }
+
+        @Test
+        void divAndDivIntExpressionTest() throws IOException, SourceException, LexerException, SyntaxException, SemCheckException, RuntimeException {
+            String code = """
+                double a = 5 / 2;
+                double b = 5 / 2;
+                double c = 5 / 2;
+                int d = 4 // 2;
+                int e = -23 // 2; 
+                              
+                """;
+
+            var source = new TextSource(code);
+            source.load();
+            var lexer = new Tokenizer(source);
+            var parser = new Parser(lexer);
+            var program = parser.parse();
+            var irTree = new SemCheck(program).check();
+            var interpreter = new Interpreter(irTree);
+            interpreter.runNoisy();
+        }
+
+        @Test
+        void insideMatchCompExpressionTest() throws IOException, SourceException, LexerException, SyntaxException, SemCheckException, RuntimeException {
+            String code = """
+                string res = "test";
+                match(res) {
+                    == "pata" or > "abb" => print(""), 
+                }
+                
+                int a = 34;
+                match(a) {
+                    > 20 or < 10 => print(""), 
+                }
+                
+                double b = 34.;
+                match(b) {
+                    > 20.5 or < 10.1 => print(""), 
+                }
+                              
+                """;
+
+            var source = new TextSource(code);
+            source.load();
+            var lexer = new Tokenizer(source);
+            var parser = new Parser(lexer);
+            var program = parser.parse();
+            var irTree = new SemCheck(program).check();
+            var interpreter = new Interpreter(irTree);
+            interpreter.runNoisy();
+        }
+
+        @Test
+        void isExpressionTest() throws IOException, SourceException, LexerException, SyntaxException, SemCheckException, RuntimeException {
+            String code = """
+                string? res = null;
+                if (res is null) {
+                    print("test");
+                }
+                
+                int? a = 15;
+                if (a is int) {
+                    print("test");
+                }
+                
+                double? b = 15 as double;
+                if (b is double) {
+                    print("test");
+                }
+                              
+                """;
+
+            var source = new TextSource(code);
+            source.load();
+            var lexer = new Tokenizer(source);
+            var parser = new Parser(lexer);
+            var program = parser.parse();
+            var irTree = new SemCheck(program).check();
+            var interpreter = new Interpreter(irTree);
+            interpreter.runNoisy();
+        }
+    }
 }

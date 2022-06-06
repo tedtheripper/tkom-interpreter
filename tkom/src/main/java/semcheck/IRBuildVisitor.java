@@ -115,24 +115,28 @@ public class IRBuildVisitor implements BuildVisitor {
         currentUserFunctionDef = null;
     }
 
-    private void validateReturns(Block block) throws SemCheckException {
-        validateReturnsList(block.getInstructions());
+    private boolean validateReturns(Block block) throws SemCheckException {
+        return validateReturnsList(block.getInstructions());
     }
 
-    private void validateReturnsList(List<Instruction> instructions) throws SemCheckException {
+    private boolean validateReturnsList(List<Instruction> instructions) throws SemCheckException {
         for(var instruction : instructions) {
-            if (instruction instanceof ReturnInstruction) return;
+            if (instruction instanceof ReturnInstruction) return true;
             if (instruction instanceof IfInstruction ifInstruction) {
-                validateReturns(ifInstruction.getTrueBlock());
+                var trueBlock = validateReturns(ifInstruction.getTrueBlock());
                 if (ifInstruction.getFalseBlock() != null) {
-                    validateReturns(ifInstruction.getFalseBlock());
+                    return trueBlock && validateReturns(ifInstruction.getFalseBlock());
+                } else {
+                    return trueBlock;
                 }
             }
             if (instruction instanceof MatchInstruction matchInstruction) {
+                var countStatements = 0;
                 for (var matchIn : matchInstruction.getMatchStatements()) {
-                    if (matchIn.isDefault() && (matchIn.getInstruction() instanceof ReturnInstruction))  {
-                        return;
-                    }
+                    if (matchIn.getInstruction() instanceof ReturnInstruction) countStatements++;
+                }
+                if (countStatements == matchInstruction.getMatchStatements().size()) {
+                    return true;
                 }
             }
         }

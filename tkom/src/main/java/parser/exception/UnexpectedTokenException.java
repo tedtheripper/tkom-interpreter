@@ -8,8 +8,8 @@ public class UnexpectedTokenException extends SyntaxException{
     private final TokenType receivedToken;
     private final TokenType expectedToken;
 
-    public UnexpectedTokenException(Position position, TokenType receivedToken, TokenType expectedToken) {
-        super(position);
+    public UnexpectedTokenException(String message, Position position, TokenType receivedToken, TokenType expectedToken) {
+        super(message, position);
         this.receivedToken = receivedToken;
         this.expectedToken = expectedToken;
     }

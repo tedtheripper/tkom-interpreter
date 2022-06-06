@@ -3,18 +3,21 @@ package parser;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import parser.statements.FunctionDef;
 import parser.statements.Statement;
+import semcheck.BuildVisitor;
+import semcheck.exception.SemCheckException;
 
 import java.util.List;
-import java.util.Map;
 
 @AllArgsConstructor
 @Getter
 @EqualsAndHashCode
-public class Program {
+public class Program implements SyntaxNode{
 
-    private final Map<String, FunctionDef> functions;
     private final List<Statement> statements;
 
+    @Override
+    public void accept(BuildVisitor visitor) throws SemCheckException {
+        visitor.visitProgram(this);
+    }
 }

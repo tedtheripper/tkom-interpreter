@@ -13,9 +13,7 @@ import source_loader.exception.SourceException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Parser {
 
@@ -34,21 +32,16 @@ public class Parser {
 
     public Program parse() throws IOException, LexerException, SourceException, SyntaxException {
 
-        Map<String, FunctionDef> functions = new HashMap<>();
         List<Statement> statements = new ArrayList<>();
         Statement statement;
         while((statement = tryParseFunctionDefinition()) != null
                 || (statement = tryParseStatement()) != null) {
-            if (statement instanceof FunctionDef funcDef) {
-                functions.put(funcDef.getName(), funcDef);
-            } else {
-                statements.add(statement);
-            }
+            statements.add(statement);
         }
         if (!checkAndConsume(TokenType.T_ETX)) {
             throwUnexpectedTokenException(TokenType.T_ETX);
         }
-        return new Program(functions, statements);
+        return new Program(statements);
     }
 
     // functionDef = "func", identifier, "(", [parametersList], ")", ":", type, "{", statementBlock, "}" ;
@@ -536,6 +529,11 @@ public class Parser {
             if (expression == null)
                  throwMissingExpressionException();
             return new UnaryExpression(expression, new Operator(TokenType.T_UNARY_OP.getText()));
+        } else if (checkAndConsume(TokenType.T_SUB_OP)) {
+            var expression = tryParseBaseExpression();
+            if (expression == null)
+                throwMissingExpressionException();
+            return new UnaryExpression(expression, new Operator(TokenType.T_SUB_OP.getText()));
         } else {
             return tryParseBaseExpression();
         }
@@ -608,27 +606,27 @@ public class Parser {
     }
 
     private void throwUnexpectedTokenException(TokenType expected) throws UnexpectedTokenException {
-        throw new UnexpectedTokenException(getCurrentTokenPosition(), getCurrentTokenType(), expected);
+        throw new UnexpectedTokenException("Unexpected token occurred", getCurrentTokenPosition(), getCurrentTokenType(), expected);
     }
 
     private void throwMissingExpressionException() throws MissingExpressionException {
-        throw new MissingExpressionException(getCurrentTokenPosition());
+        throw new MissingExpressionException("Missing expression", getCurrentTokenPosition());
     }
 
     private void throwMissingParameterException() throws MissingParameterException {
-        throw new MissingParameterException(getCurrentTokenPosition());
+        throw new MissingParameterException("Missing parameter", getCurrentTokenPosition());
     }
 
     private void throwMissingSemicolonException() throws MissingSemicolonException {
-        throw new MissingSemicolonException(getCurrentTokenPosition());
+        throw new MissingSemicolonException("Missing semicolon", getCurrentTokenPosition());
     }
 
     private void throwMissingStatementBlockException() throws MissingStatementBlockException {
-        throw new MissingStatementBlockException(getCurrentTokenPosition());
+        throw new MissingStatementBlockException("Missing statement block", getCurrentTokenPosition());
     }
 
     private void throwMissingStatementException() throws MissingStatementException {
-        throw new MissingStatementException(getCurrentTokenPosition());
+        throw new MissingStatementException("Missing statement", getCurrentTokenPosition());
     }
 
     private boolean isLiteral(TokenType type) {

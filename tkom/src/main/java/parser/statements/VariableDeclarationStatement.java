@@ -5,6 +5,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import parser.Type;
 import parser.expressions.Expression;
+import semcheck.BuildVisitor;
+import semcheck.exception.SemCheckException;
 
 @AllArgsConstructor
 @Getter
@@ -15,4 +17,9 @@ public class VariableDeclarationStatement implements Statement{
     private final Type type;
     private final String name;
     private final Expression expression;
+
+    @Override
+    public void accept(BuildVisitor visitor) throws SemCheckException {
+        visitor.visitVariableDeclarationStatement(this);
+    }
 }

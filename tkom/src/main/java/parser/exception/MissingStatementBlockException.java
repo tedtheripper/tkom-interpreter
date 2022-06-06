@@ -4,7 +4,7 @@ import common.Position;
 
 public class MissingStatementBlockException extends SyntaxException {
 
-    public MissingStatementBlockException(Position position) {
-        super(position);
+    public MissingStatementBlockException(String message, Position position) {
+        super(message, position);
     }
 }

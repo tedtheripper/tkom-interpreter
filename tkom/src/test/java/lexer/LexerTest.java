@@ -270,7 +270,7 @@ class LexerTest {
         @Test
         void shouldCorrectlyReadAllTokensSample1() throws Exception{
             String code = """
-                    # function calculates Nth fibonacci number
+                    # userFunction calculates Nth fibonacci number
                     func fib(int n) : int {
                         if (n <= 1) {
                             return n;

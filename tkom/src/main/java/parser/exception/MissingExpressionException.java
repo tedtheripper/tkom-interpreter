@@ -3,7 +3,7 @@ package parser.exception;
 import common.Position;
 
 public class MissingExpressionException extends SyntaxException{
-    public MissingExpressionException(Position position) {
-        super(position);
+    public MissingExpressionException(String message, Position position) {
+        super(message, position);
     }
 }

@@ -43,6 +43,9 @@ public class StartApplication {
         } catch (SyntaxException ex) {
             Printer.printSyntaxException(ex);
             return;
+        } catch (Exception ex) {
+            Printer.printErrorMessage("Unexpected error: " + ex.getMessage());
+            return;
         }
 
         Printer.printMessage("DONE");

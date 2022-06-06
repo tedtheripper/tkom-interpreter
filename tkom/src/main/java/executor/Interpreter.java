@@ -1,6 +1,7 @@
 package executor;
 
 import executor.exceptions.CastException;
+import executor.exceptions.DivisionByZeroException;
 import executor.exceptions.RuntimeException;
 import executor.exceptions.StackOverflowException;
 import executor.ir.*;
@@ -17,7 +18,7 @@ public class Interpreter implements Executor {
     private static final String DOUBLE_TYPE_NAME = "double";
     private static final String BOOL_TYPE_NAME = "bool";
 
-    private static final int MAX_STACK_SIZE = 16;
+    private static final int MAX_STACK_SIZE = 64;
 
     private boolean continueDetected = false;
     private boolean breakDetected = false;
@@ -164,10 +165,16 @@ public class Interpreter implements Executor {
         if (obj instanceof IntegerObject) {
             var rightValue = ((IntegerObject)objects.pop()).getValue();
             var leftValue = ((IntegerObject)objects.pop()).getValue();
+            if (rightValue == 0) {
+                throw new DivisionByZeroException("Division by zero detected");
+            }
             objects.push(new DoubleObject((double)leftValue / (double)rightValue));
         } else {
             var rightValue = ((DoubleObject)objects.pop()).getValue();
             var leftValue = ((DoubleObject)objects.pop()).getValue();
+            if (rightValue == 0) {
+                throw new DivisionByZeroException("Division by zero detected");
+            }
             objects.push(new DoubleObject(leftValue / rightValue));
         }
     }
@@ -180,10 +187,16 @@ public class Interpreter implements Executor {
         if (obj instanceof IntegerObject) {
             var rightValue = ((IntegerObject)objects.pop()).getValue();
             var leftValue = ((IntegerObject)objects.pop()).getValue();
+            if (rightValue == 0) {
+                throw new DivisionByZeroException("Division by zero detected");
+            }
             objects.push(new IntegerObject(leftValue / rightValue));
         } else {
             var rightValue = ((DoubleObject)objects.pop()).getValue();
             var leftValue = ((DoubleObject)objects.pop()).getValue();
+            if (rightValue == 0) {
+                throw new DivisionByZeroException("Division by zero detected");
+            }
             objects.push(new DoubleObject((int)(leftValue / rightValue)));
         }
     }

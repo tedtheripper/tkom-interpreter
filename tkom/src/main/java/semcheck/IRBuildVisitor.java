@@ -583,7 +583,13 @@ public class IRBuildVisitor implements BuildVisitor {
         throwOnInvalidExpressionUse();
         expressions.push(exp);
         insideMatchType = true;
-        insideMatchTypeExpression.getType().accept(this);
+        if (insideMatchTypeExpression.getType() != null) {
+            insideMatchTypeExpression.getType().accept(this);
+        } else {
+            exp = (executor.ir.expressions.InsideMatchTypeExpression) expressions.pop();
+            exp.setType(null);
+            expressions.push(exp);
+        }
     }
 
     @Override
@@ -603,6 +609,8 @@ public class IRBuildVisitor implements BuildVisitor {
             isAsType = true;
             if (isAsExpression.getType() != null) {
                 isAsExpression.getType().accept(this);
+            } else {
+                isAsType = false;
             }
             exp = (IsExpression) expressions.pop();
             exp.setExpression(deeperExp);
@@ -745,7 +753,7 @@ public class IRBuildVisitor implements BuildVisitor {
             isAsType = false;
         } else if (insideMatchType) {
             var exp = (executor.ir.expressions.InsideMatchTypeExpression)expressions.pop();
-            exp.setType(new executor.ir.Type(type));
+            exp.setType(type == null ? null : new executor.ir.Type(type));
             expressions.push(exp);
             insideMatchType = false;
         }

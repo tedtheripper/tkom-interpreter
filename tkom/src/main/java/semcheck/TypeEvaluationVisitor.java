@@ -187,6 +187,14 @@ public class TypeEvaluationVisitor implements TypeVisitor {
             throw new SemCheckException("Match comparison does not allow null values, use `is null` instead");
         }
 
+        if (scope.getVariable("_").getType().isNullable() || expType.isNullable()) {
+            throw new SemCheckException("Match comparison is illegal with nullable types");
+        }
+
+        if (!scope.getVariable("_").getType().getTypeName().equals(expType.getTypeName())) {
+            throw new SemCheckException("Match comparison type mismatch");
+        }
+
         return new Type(false, BOOL_TYPE_NAME);
     }
 

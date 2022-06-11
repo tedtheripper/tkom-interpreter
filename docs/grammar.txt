@@ -1,0 +1,114 @@
+program               = progStatement, { progStatement } ;
+
+progStatement         = functionDef
+                      | statement ;
+
+statement             = conditionalStatement
+                      | simpleStatement, ";"
+                      | variableDeclaration, ";" ;                
+
+conditionalStatement  = ifStatement
+                      | whileStatement
+                      | matchStatement;
+
+simpleStatement       = expression
+                      | returnStatement 
+                      | "break"
+                      | "continue" ;
+
+functionDef           = "func", identifier, "(", [parametersList], ")", ":", type, "{", statementBlock, "}" ;
+
+statementBlock        = statement, {statement} ;
+variableDeclaration   = ["mutable"], type, identifier, assignmentOp, (expression) ;
+
+ifStatement           = ifBlock, [elseBlock] ;
+whileStatement        = "while", "(", expression, ")", "{", {statementBlock}, "}" ;
+matchStatement        = "match", "(", expression, ")", "{", insideMatchStatement, {insideMatchStatement}. "}" ;
+
+insideMatchStatement  = (insideMatchExpression, {(orOp | andOp), insideMatchExpression} | "default"), "=>" simpleStatement, "," ;
+
+insideMatchExpression = comparisonOp, valueLiteral
+                      | expression
+                      | "is", (type | "null");
+
+ifBlock               = "if", "(", expression, ")", "{", {statementBlock}, "}" ;
+elseBlock             = "else", "{", {statementBlock}, "}" ;
+
+functionCall          = identifier, "(", [argumentList], ")" ;
+parametersList        = parameter, {",", parameter} ;
+
+argumentList          = expression, {",", expression} ;
+
+parameter             = ["mutable"], type, identifier ;
+returnStatement       = "return", [expression] ;
+
+expression            = nullCheckExpression, ["=", nullCheckExpression] ;
+nullCheckExpression   = orExpression, {"??", orExpression} ;
+orExpression          = andExpression, {orOp, andExpression} ;
+andExpression         = compExpression, {andOp, compExpression} ;
+compExpression        = isasExpression, [comparisonOp, isasExpression] ;
+isasExpression        = addExpression, [("is" | "as"), (type | "null")] ; 
+addExpression         = mulExpression, {additiveOp, mulExpression} ;
+mulExpression         = unaryExpression, {multiOp, unaryExpression} ;
+unaryExpression       = [unaryOp], baseExpression ;
+baseExpression        = valueLiteral
+                      | "(", expression, ")"
+                      | functionCall
+                      | identifier ;
+
+(* operators *)
+
+unaryOp               = "!" 
+                      | "-" ;
+assignmentOp          = "=" ;
+orOp                  = "or" ;
+andOp                 = "and" ;
+comparisonOp          = "=="
+                      | "!="
+                      | "<"
+                      | "<="
+                      | ">"
+                      | ">=" ;
+additiveOp            = "+"
+                      | "-" ;
+multiOp               = "*"
+                      | "/"
+                      | "//"
+                      | "%" ;
+
+
+valueLiteral          = booleanLiteral
+                      | integerLiteral
+                      | doubleLiteral
+                      | stringLiteral
+                      | "null" ;
+
+nonNullableType       = "bool"
+                      | "int"
+                      | "double"
+                      | "string" ;
+
+type                  = nonNullableType, ["?"] 
+                      | "void" ;
+
+booleanLiteral        = "true"
+                      | "false" ;
+
+identifier            = (letter | "_"),  letter, {digit | letter | "_"} ;
+
+escapeLiteral         = "\\" ("t" | "b" | "r" | "n" | "\"" | "\\") ;
+stringLiteral         = "\"", {charLiteral}, "\"" ;
+charLiteral           = allCharacters - "\\" - "\"" | escapeLiteral ;
+
+doubleLiteral         = integerLiteral, ".", { digit }
+                      | ".", digit, {digit};
+
+integerLiteral        = "0" | naturalLiteral ;
+naturalLiteral        = digitNoZero, { digit } ;
+
+allCharacters         = ? all visible characters ? | "\t" | " " ;
+letter                = "a".."z" | "A".."Z" ;
+
+digit                 = "0"
+                      | digitNoZero ;
+digitNoZero           = "1" | ... | "9" ;
